@@ -148,3 +148,94 @@
   height: auto;
   pointer-events: none;
 }
+
+.screen-spinner-veil {
+  background: radial-gradient(ellipse at center, rgb(20 20 20 / 0.55) 0%, rgb(11 11 11 / 0.92) 68%);
+  backdrop-filter: blur(14px);
+}
+
+.screen-spinner-mark {
+  position: relative;
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+}
+
+.screen-spinner-glow {
+  position: absolute;
+  inset: 16px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgb(229 9 20 / 0.42), transparent 72%);
+  animation: screen-spinner-pulse 1.7s ease-in-out infinite;
+}
+
+.screen-spinner-orbit {
+  position: absolute;
+  inset: 0;
+  width: 96px;
+  height: 96px;
+  animation: screen-spinner-rotate 0.9s linear infinite;
+}
+
+.screen-spinner-orbit--slow {
+  animation-duration: 2.4s;
+  animation-direction: reverse;
+}
+
+.screen-spinner-track,
+.screen-spinner-arc {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.screen-spinner-track {
+  stroke: rgb(229 9 20 / 0.16);
+  stroke-width: 2.5;
+}
+
+.screen-spinner-arc {
+  stroke: #e50914;
+  stroke-width: 3.5;
+  stroke-dasharray: 36 120;
+  filter: drop-shadow(0 0 10px rgb(229 9 20 / 0.85));
+}
+
+.screen-spinner-arc--outer {
+  stroke-width: 2;
+  stroke-dasharray: 28 186;
+  opacity: 0.7;
+}
+
+.screen-spinner-core {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #e50914;
+  box-shadow: 0 0 16px rgb(229 9 20 / 0.9);
+}
+
+@keyframes screen-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes screen-spinner-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-spinner-orbit,
+  .screen-spinner-glow {
+    animation: none;
+  }
+}

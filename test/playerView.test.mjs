@@ -41,6 +41,7 @@ const { state } = await import('../web/state.mjs')
 const { renderPlayer, resetPlayerMedia, setHlsEngine } = await import('../web/playerView.mjs')
 const { togglePlayerFullscreen } = await import('../web/fullscreen.mjs')
 const { favStore, historyStore } = await import('../web/stores.mjs')
+const { PRIME_SCREEN_EVENT } = await import('../web/primeVideo.mjs')
 
 beforeEach(() => {
   faker.seed(61)
@@ -143,6 +144,20 @@ test('no Tauri o quadro tem Abrir no player no topo', () => {
   assert.ok(button)
   assert.match(button.textContent, /Abrir no player/)
   assert.equal(button.className.includes('ml-auto'), true)
+})
+
+test('player tem atalho Prime Video que leva para a aba Prime', () => {
+  const seen = []
+  const listener = () => seen.push('prime')
+  document.addEventListener(PRIME_SCREEN_EVENT, listener)
+  openFla()
+  renderPlayer()
+  const button = document.querySelector('#player-frame [data-prime-video]')
+  assert.ok(button)
+  assert.match(button.textContent, /Prime Video/)
+  button.click()
+  document.removeEventListener(PRIME_SCREEN_EVENT, listener)
+  assert.deepEqual(seen, ['prime'])
 })
 
 test('F liga o teatro pela API de tela cheia', async () => {
@@ -345,6 +360,52 @@ test('dar play em outro item fecha o PiP e troca o stream', () => {
   assert.equal(document.getElementById('pip').hidden, true)
   assert.equal(document.querySelector('#player video'), video)
   assert.equal(plays.at(-1), otherUrl)
+})
+
+test('player ao vivo tem Ir ao vivo como primeiro controle da barra', () => {
+  openFla()
+  renderPlayer()
+  const toolbar = document.querySelector('[data-player-toolbar]')
+  const button = toolbar.querySelector('[data-go-live]')
+  assert.ok(button)
+  assert.match(button.textContent, /Ir ao vivo/)
+  assert.equal(toolbar.firstElementChild, button)
+})
+
+test('player de filme não mostra Ir ao vivo', () => {
+  const url = `http://${faker.internet.domainName()}/movie/user/pass/9.mp4`
+  state.client = { moviePlayUrl: () => url }
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: 'movies',
+    selectedItem: { id: 9, name: faker.lorem.words(2), extension: 'mp4' },
+  }
+  renderPlayer()
+  assert.equal(document.querySelector('[data-go-live]'), null)
+})
+
+test('clicar Ir ao vivo pula o HLS para liveSyncPosition', () => {
+  openFla()
+  const edge = faker.number.float({ min: 40, max: 90, fractionDigits: 1 })
+  class FakeHls {
+    static isSupported() {
+      return true
+    }
+    get liveSyncPosition() {
+      return edge
+    }
+    loadSource() {}
+    attachMedia() {}
+    destroy() {}
+  }
+  globalThis.__TAURI__ = { core: { invoke: async () => {} } }
+  setHlsEngine(FakeHls)
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  video.currentTime = 1
+  document.querySelector('[data-go-live]').click()
+  assert.equal(video.currentTime, edge)
 })
 
 test('sair em tela cheia tocando sai do teatro e deixa o PiP', async () => {

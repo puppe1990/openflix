@@ -9,6 +9,7 @@ import { resolvePlayerSource } from '../src/playerSource.mjs'
 import { watchCardFromItem } from '../src/watchCard.mjs'
 import { redactUrl } from '../src/xtreamUrls.mjs'
 import {
+  actionClass,
   ghostClass,
   liveBadgeClass,
   playerNoteClass,
@@ -20,7 +21,9 @@ import { tauriInvoke, webFetch } from './bridge.mjs'
 import { byId, el } from './dom.mjs'
 import { exitPlayerFullscreen, resetPlayerFullscreen } from './fullscreen.mjs'
 import { ICON_HEART, iconSvg } from './icons.mjs'
+import { openPrimeVideo } from './primeVideo.mjs'
 import { playUrl, withRotation } from './session.mjs'
+import { transitionTo } from './screenFlow.mjs'
 import { state } from './state.mjs'
 import { favStore, historyStore, resumeStore } from './stores.mjs'
 
@@ -59,11 +62,12 @@ function hidePip() {
 
 function restoreFromPip() {
   if (!held.item || !held.catalogKind) return
-  state.shell = restorePlayerFromPip(state.shell, {
-    catalogKind: held.catalogKind,
-    selectedItem: held.item,
-  })
-  state.redraw()
+  void transitionTo(
+    restorePlayerFromPip(state.shell, {
+      catalogKind: held.catalogKind,
+      selectedItem: held.item,
+    }),
+  )
 }
 
 function wirePip(host) {
@@ -202,6 +206,7 @@ function playerVideo(url, item) {
   if (held.video && held.frame) {
     const nameEl = held.frame.querySelector('[data-player-name]')
     if (nameEl) nameEl.textContent = item?.name ?? ''
+    syncGoLiveButton(held.frame)
     const source = resolvePlayerSource(url, { canPlay: (type) => held.video.canPlayType(type) })
     if (source.kind === 'hls' || source.kind === 'progressive') {
       bindHlsOrProgressive(held.video, url, source)
@@ -225,11 +230,49 @@ function playerVideo(url, item) {
   return { video, source, frame }
 }
 
+function playingLiveUrl(url) {
+  const src = held.video?.currentSrc || held.video?.getAttribute('src') || ''
+  if (src && src !== url) return false
+  return Boolean(held.session) && held.url === url
+}
+
+function goLive() {
+  const url = playUrl()
+  if (!held.video || !url) return
+  if (!playingLiveUrl(url)) {
+    held.session?.destroy?.()
+    held.session = null
+    held.url = ''
+    const source = resolvePlayerSource(url, { canPlay: (type) => held.video.canPlayType(type) })
+    bindHlsOrProgressive(held.video, url, source)
+  }
+  held.session?.seekToLive?.()
+}
+
+function goLiveButton() {
+  const button = el('button', actionClass())
+  button.type = 'button'
+  button.dataset.goLive = '1'
+  button.textContent = 'Ir ao vivo'
+  button.addEventListener('click', goLive)
+  return button
+}
+
+function syncGoLiveButton(frame) {
+  const toolbar = frame.querySelector('[data-player-toolbar]')
+  if (!toolbar) return
+  const button = toolbar.querySelector('[data-go-live]')
+  const live = state.shell.catalogKind === 'live'
+  if (live && !button) toolbar.prepend(goLiveButton())
+  if (!live && button) button.remove()
+}
+
 function playerFrame(video, item) {
   const frame = el('div', 'relative flex aspect-video flex-col overflow-hidden rounded-lg bg-black')
   const top = el('div', 'flex shrink-0 items-center gap-2 bg-black/80 px-4 py-3')
   top.dataset.playerToolbar = '1'
   if (state.shell.catalogKind === 'live') {
+    top.append(goLiveButton())
     top.append(el('span', liveBadgeClass(), 'Ao vivo'))
   }
   const name = el(
@@ -240,7 +283,8 @@ function playerFrame(video, item) {
   name.dataset.playerName = '1'
   top.append(name)
   top.append(favButton())
-  if (tauriInvoke()) top.append(sidecarButton('ml-auto'))
+  if (tauriInvoke()) top.append(sidecarButton('ml-auto'), primeVideoButton())
+  else top.append(primeVideoButton('ml-auto'))
   frame.append(top, video)
   return frame
 }
@@ -360,6 +404,17 @@ function sidecarButton(extraClass = '') {
   button.dataset.sidecar = '1'
   button.textContent = 'Abrir no player'
   button.addEventListener('click', () => openSidecar(held.url || playUrl()))
+  return button
+}
+
+function primeVideoButton(extraClass = '') {
+  const className = extraClass ? `${ghostClass()} ${extraClass}` : ghostClass()
+  const button = el('button', className)
+  button.type = 'button'
+  button.dataset.primeVideo = '1'
+  button.title = 'Abrir o Prime Video dentro do OpenFlix (login na Amazon)'
+  button.textContent = 'Prime Video'
+  button.addEventListener('click', openPrimeVideo)
   return button
 }
 

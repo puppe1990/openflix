@@ -150,3 +150,100 @@ export function fakerM3uPlaylist(items) {
     .join('\n')
   return `#EXTM3U\n${body}\n`
 }
+
+export function fakerPrimeNavNode(overrides = {}) {
+  const swiftPageType = overrides.swiftPageType ?? 'genre'
+  const swiftPageId = overrides.swiftPageId ?? `av_genre_${faker.word.noun()}`
+  const slug = swiftPageId.replace(/^av_genre_/, '')
+  return {
+    __type: 'atv.wps#NavigationSubNode',
+    id: overrides.id ?? `V2=${faker.string.alphanumeric(48)}`,
+    label: overrides.label ?? faker.commerce.department(),
+    refMarker: overrides.refMarker ?? `hm_fin_c_${faker.string.alphanumeric(8)}`,
+    swiftPageId,
+    swiftPageType,
+    url: overrides.url ?? `/genre/${slug}?jic=8%7CEgNhbGw%3D`,
+  }
+}
+
+export function fakerPrimeNav(overrides = {}) {
+  return {
+    __type: 'atv.wps#EnrichNavOutput',
+    categories: [],
+    categoryGroups: overrides.categoryGroups ?? [
+      {
+        id: `V2=${faker.string.alphanumeric(24)}`,
+        label: 'Gêneros',
+        subNodes: [
+          fakerPrimeNavNode({
+            label: 'Ação e aventura',
+            swiftPageType: 'genre',
+            swiftPageId: 'av_genre_action',
+            url: '/genre/action?jic=8%7CEgNhbGw%3D',
+          }),
+        ],
+      },
+      {
+        id: `V2=${faker.string.alphanumeric(24)}`,
+        label: 'Coleções em destaque',
+        subNodes: [
+          fakerPrimeNavNode({
+            label: 'Feito para você',
+            swiftPageType: 'merch',
+            swiftPageId: 'mgForYou',
+            url: '/collection/mgForYou?jic=8%7CEgNhbGw%3D',
+          }),
+          fakerPrimeNavNode({
+            label: 'Loja',
+            swiftPageType: 'home',
+            swiftPageId: 'store',
+            url: '/store?jic=8%7CEgNhbGw%3D',
+          }),
+        ],
+      },
+    ],
+    channels: [],
+    metadata: {},
+  }
+}
+
+export function fakerPrimeEntity(overrides = {}) {
+  const title = overrides.title ?? faker.music.songName()
+  const titleID = overrides.titleID ?? `amzn1.dv.gti.${faker.string.uuid()}`
+  const detailId = faker.string.alphanumeric(20).toUpperCase()
+  return {
+    displayTitle: title,
+    title,
+    titleID,
+    entityType: overrides.entityType ?? 'Movie',
+    releaseYear: overrides.releaseYear ?? String(faker.number.int({ min: 1990, max: 2026 })),
+    runtime:
+      overrides.runtime ??
+      `${faker.number.int({ min: 1, max: 2 })} h ${faker.number.int({ min: 1, max: 59 })} min`,
+    synopsis: overrides.synopsis ?? faker.lorem.sentence(),
+    images: { cover: { url: overrides.coverUrl ?? faker.image.url() } },
+    link: { url: overrides.href ?? `/-/pt/detail/${detailId}` },
+    maturityRatingBadge: { displayText: overrides.badge ?? '14' },
+    entitlementCues: {
+      focusMessage: { message: overrides.entitlement ?? 'Incluído no Prime' },
+      highValueMessage: { message: overrides.highValue ?? '' },
+    },
+  }
+}
+
+export function fakerPrimeLanding(overrides = {}) {
+  return {
+    __type: 'atv.wps#GetLandingPageOutput',
+    hasFailed: overrides.hasFailed ?? false,
+    containers: overrides.containers ?? [
+      {
+        containerType: 'StandardCarousel',
+        title: overrides.rowTitle ?? faker.commerce.department(),
+        isContinueWatching: false,
+        entities: [fakerPrimeEntity(), fakerPrimeEntity()],
+      },
+    ],
+    pageMetadata: { title: overrides.pageTitle ?? 'Prime Video' },
+    pagination: overrides.pagination ?? {},
+  }
+}

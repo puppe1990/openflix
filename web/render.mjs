@@ -3,6 +3,8 @@ import { BRAND } from './config.mjs'
 import { renderCatalog, renderHome, renderTabs } from './catalogView.mjs'
 import { byId } from './dom.mjs'
 import { renderPlayer } from './playerView.mjs'
+import { renderPrime } from './primeView.mjs'
+import { renderSpinner } from './spinnerView.mjs'
 import { state } from './state.mjs'
 import { playlistStore } from './stores.mjs'
 
@@ -44,8 +46,10 @@ export function renderAll() {
   renderHome()
   renderCatalog()
   renderPlayer()
+  renderPrime()
   renderSettings()
   renderTabs()
   renderSignal()
+  renderSpinner()
   byId('error').textContent = state.errorText
 }

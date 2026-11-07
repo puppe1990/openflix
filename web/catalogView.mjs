@@ -6,6 +6,7 @@ import {
   growCardLimit,
   itemsToPaint,
   nextChannelLayout,
+  shouldGrowItems,
 } from '../src/channelLayout.mjs'
 import { channelMark } from '../src/channelMark.mjs'
 import { epgProgress } from '../src/epgProgress.mjs'
@@ -13,7 +14,6 @@ import { nowAndNext } from '../src/xmltvNowNext.mjs'
 import { HOME_TILES } from '../src/tvShell.mjs'
 import { itemFromWatchCard, watchCardFromItem } from '../src/watchCard.mjs'
 import {
-  actionClass,
   catalogDetailClass,
   catalogGridClass,
   catalogListsClass,
@@ -27,16 +27,14 @@ import {
   itemListClass,
   itemsPaneClass,
   liveBadgeClass,
-  playerNoteClass,
-  playerTitleClass,
   tabClass,
   tileClass,
 } from '../src/tvSkin.mjs'
 import { byId, el } from './dom.mjs'
 import { renderHomeRows } from './homeRows.mjs'
-import { ICON_GRID, ICON_HEART, ICON_LIST, ICON_PLAY, iconSvg } from './icons.mjs'
-import { ensureEpg, epgBlock } from './playerView.mjs'
+import { ICON_GRID, ICON_HEART, ICON_LIST, iconSvg } from './icons.mjs'
 import { fillGuide } from './session.mjs'
+import { transitionTo } from './screenFlow.mjs'
 import { state } from './state.mjs'
 import { favStore, historyStore } from './stores.mjs'
 
@@ -45,6 +43,7 @@ const TAB_SCREENS = {
   'tab-live': 'live',
   'tab-movies': 'movies',
   'tab-series': 'series',
+  'tab-prime': 'prime',
   'tab-settings': 'settings',
 }
 
@@ -146,13 +145,12 @@ export function renderHome() {
 
 /** Abre o player a partir de um retrato da home. */
 export function openHomeItem(card) {
-  state.shell = {
+  void transitionTo({
     ...state.shell,
     catalogKind: card.catalogKind,
     selectedItem: itemFromWatchCard(card),
     screen: 'player',
-  }
-  state.redraw()
+  })
 }
 
 /** Marca a aba ativa pelo estado atual. */
@@ -160,7 +158,8 @@ export function renderTabs() {
   const { shell } = state
   const active = shell.screen === 'catalog' ? shell.catalogKind : shell.screen
   for (const [id, name] of Object.entries(TAB_SCREENS)) {
-    byId(id).className = tabClass(active === name)
+    const tab = byId(id)
+    if (tab) tab.className = tabClass(active === name)
   }
 }
 
@@ -185,13 +184,12 @@ export function selectCategory(index) {
 /** Seleciona um item e abre o player. */
 export function selectItem(item) {
   const index = (currentCategory()?.items ?? []).findIndex((candidate) => candidate.id === item.id)
-  state.shell = {
+  void transitionTo({
     ...state.shell,
     itemIndex: Math.max(0, index),
     selectedItem: item,
     screen: 'player',
-  }
-  state.redraw()
+  })
 }
 
 function renderCategories(categories) {
@@ -213,7 +211,7 @@ function renderCategories(categories) {
 }
 
 function listingOf(item) {
-  const fromGuide = nowAndNext(state.guide?.programs, {
+  const fromGuide = nowAndNext(state.guide?.byChannel ?? state.guide?.programs, {
     channelId: item.epgChannelId,
     now: state.guide?.now ?? Date.now(),
   })
@@ -228,11 +226,6 @@ function liveLayout() {
 
 function renderItemsToolbar() {
   const bar = byId('items-toolbar')
-  if (state.shell.catalogKind !== 'live') {
-    bar.hidden = true
-    bar.replaceChildren()
-    return
-  }
   bar.hidden = false
   bar.className = 'flex shrink-0 justify-end'
   const layout = liveLayout()
@@ -285,7 +278,7 @@ function renderChannelRow(item, index, selected, live) {
     body.append(progressBar(epgProgress(listing)))
   }
   row.append(body)
-  if (live) row.append(favToggle(item))
+  row.append(favToggle(item))
   if (live && selected) row.append(el('span', liveBadgeClass(), 'No ar'))
   row.addEventListener('click', () => selectItem(item))
   return row
@@ -341,7 +334,7 @@ function renderChannelCard(item, index, selected, live) {
 function renderItems(categories) {
   const list = byId('items')
   const kind = state.shell.catalogKind
-  const layout = kind === 'live' ? liveLayout() : 'list'
+  const layout = liveLayout()
   list.className = itemListClass(kind, layout)
   const category = categories.find((entry) => entry.sourceIndex === state.shell.categoryIndex)
   const all = category?.items ?? []
@@ -355,124 +348,16 @@ function renderItems(categories) {
     list.append(paint(item, index, selected, live))
   }
   list.scrollTop = top
-  list.onscroll =
-    layout === 'card'
-      ? () => {
-          const remain = list.scrollHeight - list.scrollTop - list.clientHeight
-          if (remain > 240) return
-          const next = growCardLimit(state.itemLimit, all.length)
-          if (next === state.itemLimit) return
-          state.itemLimit = next
-          renderItems(categories)
-        }
-      : null
+  list.onscroll = () => {
+    if (!shouldGrowItems(list)) return
+    const next = growCardLimit(state.itemLimit, all.length)
+    if (next === state.itemLimit) return
+    state.itemLimit = next
+    renderItems(categories)
+  }
 }
 
-function renderStage(item) {
-  const stage = el('div', 'relative aspect-video overflow-hidden rounded-lg bg-well')
-  const art = artUrl(item)
-  if (art) {
-    const photo = el('div', 'absolute inset-0 bg-cover bg-center')
-    photo.style.backgroundImage = `url("${art}")`
-    stage.append(photo)
-  } else {
-    const mark = el(
-      'div',
-      'absolute inset-0 flex items-center justify-center font-display text-[72px] font-black text-accent/80',
-      channelMark(item.name),
-    )
-    stage.append(mark)
-  }
-  stage.append(el('div', 'absolute inset-0 bg-linear-to-t from-void via-void/40 to-black/50'))
-  const top = el('div', 'absolute top-4 left-4 flex items-center gap-2')
-  if (state.shell.catalogKind === 'live') {
-    top.append(el('span', liveBadgeClass(), 'Ao vivo'))
-  }
-  top.append(
-    el(
-      'span',
-      'rounded bg-black/60 px-2 py-0.5 font-sans text-[10px] font-bold text-ink',
-      item.name,
-    ),
-  )
-  stage.append(top)
-  return stage
-}
-
-function renderDetail() {
-  const root = byId('detail')
-  const item = state.shell.selectedItem
-  if (!item) {
-    root.replaceChildren()
-    return
-  }
-  const nodes = [renderStage(item)]
-  const meta = el('div', 'mt-4 rounded-lg bg-panel p-5')
-  meta.append(el('h2', playerTitleClass(), item.name))
-  meta.append(
-    el('p', playerNoteClass(), `#${item.id}${item.extension ? ` · ${item.extension}` : ''}`),
-  )
-  if (state.shell.catalogKind === 'live') {
-    ensureEpg(item)
-    if (state.epg.listings.length) meta.append(epgBlock(item))
-  }
-  const actions = el('div', 'mt-4 flex flex-wrap gap-2')
-  actions.append(
-    actionButton(actionClass(), ICON_PLAY, 'Assistir', () => selectItem(item)),
-    actionButton(
-      ghostClass(),
-      ICON_HEART,
-      favStore.isFav(item.id) ? 'Remover favorito' : 'Favoritar',
-      () => {
-        favStore.toggleFav(item.id, watchCardFromItem(item, state.shell.catalogKind))
-        state.redraw()
-      },
-    ),
-  )
-  meta.append(actions)
-  nodes.push(meta)
-  root.replaceChildren(...nodes)
-}
-
-function shelfCard(item) {
-  const card = el('button', 'group overflow-hidden rounded-lg bg-panel text-left cursor-pointer')
-  card.type = 'button'
-  const art = el('div', 'relative aspect-video bg-well bg-cover bg-center')
-  if (item.icon) art.style.backgroundImage = `url("${item.icon}")`
-  art.append(el('div', 'absolute inset-0 bg-linear-to-t from-panel to-black/30'))
-  if (state.shell.catalogKind === 'live') {
-    const badge = el('div', 'absolute top-3 left-3')
-    badge.append(el('span', liveBadgeClass(), 'Ao vivo'))
-    art.append(badge)
-  }
-  card.append(art)
-  const body = el('div', 'grid gap-1 p-4')
-  body.append(el('h3', 'm-0 font-display text-[18px] font-bold text-ink', item.name))
-  card.append(body)
-  card.addEventListener('click', () => selectItem(item))
-  return card
-}
-
-function renderShelf(categories) {
-  const root = byId('shelf')
-  if (!root) return
-  const category = categories.find((entry) => entry.sourceIndex === state.shell.categoryIndex)
-  const items = (category?.items ?? []).slice(0, 3)
-  if (items.length === 0) {
-    root.replaceChildren()
-    return
-  }
-  const heading = el(
-    'h2',
-    'mb-4 font-display text-[clamp(22px,2vw,32px)] font-bold tracking-tight text-ink',
-    state.shell.catalogKind === 'live' ? 'No ar agora' : 'Em destaque',
-  )
-  const grid = el('div', 'grid grid-cols-1 gap-6 md:grid-cols-3')
-  grid.append(...items.map(shelfCard))
-  root.replaceChildren(heading, grid)
-}
-
-/** Desenha categorias, itens e detalhe do catálogo. */
+/** Desenha categorias e itens do catálogo. */
 export function renderCatalog() {
   const visible = state.shell.screen === 'catalog'
   byId('catalog').hidden = !visible
@@ -482,11 +367,8 @@ export function renderCatalog() {
   byId('detail').className = catalogDetailClass(kind)
   byId('catalog-lists').className = catalogListsClass(kind)
   byId('items-pane').className = itemsPaneClass(kind)
-  const catalogCats =
-    kind === 'live'
-      ? withAllCategory(state.shell.catalog?.categories)
-      : state.shell.catalog?.categories
-  if (kind === 'live' && state.shell.catalog && catalogCats !== state.shell.catalog.categories) {
+  const catalogCats = withAllCategory(state.shell.catalog?.categories)
+  if (state.shell.catalog && catalogCats !== state.shell.catalog.categories) {
     state.shell = { ...state.shell, catalog: { ...state.shell.catalog, categories: catalogCats } }
   }
   const categories = filterCategories(catalogCats, byId('search')?.value)
@@ -494,10 +376,5 @@ export function renderCatalog() {
   renderItemsToolbar()
   if (kind === 'live') void fillGuide()
   renderItems(categories)
-  if (kind === 'live') {
-    byId('shelf').replaceChildren()
-    return
-  }
-  renderDetail()
-  renderShelf(categories)
+  byId('shelf').replaceChildren()
 }

@@ -30,6 +30,7 @@ const { setRedraw, state } = await import('../web/state.mjs')
 const { renderCatalog, renderHome, renderTabs, selectCategory, selectItem } =
   await import('../web/catalogView.mjs')
 const { CHANNEL_CARD_PAGE } = await import('../src/channelLayout.mjs')
+const { indexProgramsByChannel } = await import('../src/xmltvNowNext.mjs')
 const { createTvShell } = await import('../src/tvShell.mjs')
 const { favStore, historyStore } = await import('../web/stores.mjs')
 
@@ -75,9 +76,10 @@ test('catálogo desenha categorias com contagem e itens numerados', () => {
   renderCatalog()
 
   const rows = document.querySelectorAll('#categories li')
-  assert.equal(rows.length, 1)
-  assert.match(rows[0].textContent, /Ação/)
-  assert.match(rows[0].textContent, /2/)
+  assert.equal(rows.length, 2)
+  assert.match(rows[0].textContent, /Todos/)
+  assert.match(rows[1].textContent, /Ação/)
+  assert.match(rows[1].textContent, /2/)
 
   const items = document.querySelectorAll('#items li')
   assert.equal(items.length, 2)
@@ -85,7 +87,7 @@ test('catálogo desenha categorias com contagem e itens numerados', () => {
   assert.equal(items[0].getAttribute('aria-selected'), 'true')
 })
 
-test('detalhe mostra título, botões e marca favorito', () => {
+test('listagem de filmes mostra título e favorito, detalhe escondido', () => {
   const { categories, first } = moviesCatalog()
   state.shell = {
     ...createTvShell(),
@@ -96,10 +98,10 @@ test('detalhe mostra título, botões e marca favorito', () => {
   }
   renderCatalog()
 
-  const detail = document.querySelector('#detail')
-  assert.match(detail.textContent, /Alfa/)
-  assert.match(detail.textContent, /Assistir/)
-  assert.match(detail.textContent, /Favoritar/)
+  assert.match(document.querySelector('#items li').textContent, /Alfa/)
+  assert.equal(document.querySelector('[data-list-fav]').dataset.listFav, String(first.id))
+  assert.match(document.getElementById('detail').className, /hidden/)
+  assert.equal(document.getElementById('detail').textContent, '')
 })
 
 test('selectCategory troca a categoria e seleciona o primeiro item', () => {
@@ -192,7 +194,7 @@ test('home mostra Favoritos e abre o player no clique', () => {
   assert.equal(state.shell.selectedItem.name, 'Band Sports')
 })
 
-test('Favoritar no detalhe aparece na home', () => {
+test('Favoritar na listagem aparece na home', () => {
   const { categories, first } = moviesCatalog()
   state.shell = {
     ...createTvShell(),
@@ -202,9 +204,8 @@ test('Favoritar no detalhe aparece na home', () => {
     selectedItem: first,
   }
   renderCatalog()
-  const favButton = [...document.querySelectorAll('#detail button')].find((button) =>
-    button.textContent.includes('Favoritar'),
-  )
+  const favButton = document.querySelector(`[data-list-fav="${first.id}"]`)
+  setRedraw(renderCatalog)
   favButton.click()
   state.shell = { ...state.shell, screen: 'home' }
   renderHome()
@@ -320,7 +321,7 @@ test('modo card também mostra o favorito no canal', () => {
   assert.equal(document.querySelector('[data-list-fav="521"]').tagName, 'BUTTON')
 })
 
-test('Filmes na listagem não ganha o favorito da linha ao vivo', () => {
+test('Filmes na listagem ganha o favorito da linha ao vivo', () => {
   const { categories, first } = moviesCatalog()
   state.shell = {
     ...createTvShell(),
@@ -330,7 +331,7 @@ test('Filmes na listagem não ganha o favorito da linha ao vivo', () => {
     selectedItem: first,
   }
   renderCatalog()
-  assert.equal(document.querySelector('[data-list-fav]'), null)
+  assert.equal(document.querySelector('[data-list-fav]').dataset.listFav, String(first.id))
 })
 
 test('botão Cards troca a listagem ao vivo para grade', () => {
@@ -356,23 +357,96 @@ test('botão Cards troca a listagem ao vivo para grade', () => {
   assert.match(document.querySelector('#items li').className, /w-\[calc/)
 })
 
-test('modo card não pinta milhares de canais de uma vez', () => {
-  const items = Array.from({ length: 80 }, (_, index) => ({
+function liveTodos(count) {
+  const items = Array.from({ length: count }, (_, index) => ({
     id: 1000 + index,
     name: `Canal ${index + 1}`,
     icon: '',
   }))
-  state.shell = {
-    ...createTvShell(),
-    screen: 'catalog',
-    catalogKind: 'live',
-    catalog: { kind: 'live', categories: [{ id: '1', name: 'Todos', items }] },
-    selectedItem: items[0],
+  return {
+    items,
+    shell: {
+      ...createTvShell(),
+      screen: 'catalog',
+      catalogKind: 'live',
+      catalog: { kind: 'live', categories: [{ id: '1', name: 'Todos', items }] },
+      selectedItem: items[0],
+    },
   }
+}
+
+test('modo card não pinta milhares de canais de uma vez', () => {
+  const { shell } = liveTodos(80)
+  state.shell = shell
   state.channelLayout = 'card'
   renderCatalog()
   assert.equal(document.querySelectorAll('#items li').length, CHANNEL_CARD_PAGE)
   assert.match(document.querySelector('#items li').textContent, /Canal 1/)
+})
+
+test('lista ao vivo também pinta só a primeira página e cresce no scroll', () => {
+  const { shell } = liveTodos(80)
+  state.shell = shell
+  state.channelLayout = 'list'
+  renderCatalog()
+  assert.equal(document.querySelectorAll('#items li').length, CHANNEL_CARD_PAGE)
+  const list = document.getElementById('items')
+  assert.equal(typeof list.onscroll, 'function')
+})
+
+function fakeScroller(list, { clientHeight, scrollHeight, scrollTop }) {
+  Object.defineProperty(list, 'clientHeight', { configurable: true, value: clientHeight })
+  Object.defineProperty(list, 'scrollHeight', { configurable: true, value: scrollHeight })
+  list.scrollTop = scrollTop
+}
+
+test('scroll sem overflow não pinta o resto da lista ao vivo', () => {
+  const { shell } = liveTodos(80)
+  state.shell = shell
+  state.channelLayout = 'list'
+  renderCatalog()
+  const list = document.getElementById('items')
+  fakeScroller(list, { clientHeight: 800, scrollHeight: 800, scrollTop: 0 })
+  list.onscroll()
+  assert.equal(document.querySelectorAll('#items li').length, CHANNEL_CARD_PAGE)
+})
+
+test('scroll perto do fim pinta a próxima página da lista ao vivo', () => {
+  const { shell } = liveTodos(80)
+  state.shell = shell
+  state.channelLayout = 'list'
+  renderCatalog()
+  const list = document.getElementById('items')
+  fakeScroller(list, { clientHeight: 400, scrollHeight: 1200, scrollTop: 900 })
+  list.onscroll()
+  assert.equal(document.querySelectorAll('#items li').length, 80)
+})
+
+test('listagem ao vivo usa o índice xmltv por canal', () => {
+  const channel = faker.string.alpha(6)
+  const title = faker.word.words(3)
+  const first = { id: 521, name: 'ESPN 1 HD', icon: '', epgChannelId: channel }
+  state.shell = {
+    ...createTvShell(),
+    screen: 'catalog',
+    catalogKind: 'live',
+    catalog: { kind: 'live', categories: [{ id: '1', name: 'Esportes', items: [first] }] },
+    selectedItem: first,
+  }
+  state.guide = {
+    programs: [],
+    byChannel: indexProgramsByChannel([
+      {
+        channelId: channel,
+        start: '20261030180000 +0000',
+        stop: '20261030220000 +0000',
+        title,
+      },
+    ]),
+    now: Date.UTC(2026, 9, 30, 19, 0, 0),
+  }
+  renderCatalog()
+  assert.equal(document.querySelector('#items li').textContent.includes(title), true)
 })
 
 test('listagem ao vivo mostra o programa xmltv no ar', () => {
@@ -401,7 +475,7 @@ test('listagem ao vivo mostra o programa xmltv no ar', () => {
   assert.equal(document.querySelector('#items li').textContent.includes(title), true)
 })
 
-test('Filmes não mostra o botão de Cards', () => {
+test('Filmes mostra o botão de Cards', () => {
   const { categories, first } = moviesCatalog()
   state.shell = {
     ...createTvShell(),
@@ -411,5 +485,60 @@ test('Filmes não mostra o botão de Cards', () => {
     selectedItem: first,
   }
   renderCatalog()
-  assert.equal(document.querySelector('[data-channel-layout]'), null)
+  assert.equal(document.querySelector('[data-channel-layout]').textContent.trim(), 'Cards')
+})
+
+function vodShell(kind, categories, selected) {
+  return {
+    ...createTvShell(),
+    screen: 'catalog',
+    catalogKind: kind,
+    catalog: { kind, categories },
+    selectedItem: selected,
+  }
+}
+
+test('catálogo de filmes põe categorias à esquerda e títulos à direita', () => {
+  const first = { id: faker.number.int({ min: 10, max: 99 }), name: 'Alfa', icon: '' }
+  const second = { id: faker.number.int({ min: 100, max: 199 }), name: 'Beta', icon: '' }
+  const action = { id: '1', name: 'Ação', items: [first] }
+  const drama = { id: '2', name: 'Drama', items: [second] }
+  state.shell = vodShell('movies', [action, drama], first)
+  renderCatalog()
+
+  assert.match(document.getElementById('catalog-grid').className, /grid-cols-\[18rem/)
+  assert.match(document.getElementById('categories').className, /flex-col/)
+  assert.match(document.getElementById('items').className, /flex-col/)
+  assert.match(document.getElementById('detail').className, /hidden/)
+  assert.equal(document.getElementById('shelf').childNodes.length, 0)
+
+  const cats = document.querySelectorAll('#categories li')
+  assert.equal(cats.length, 3)
+  assert.match(cats[0].textContent, /Todos/)
+  assert.match(cats[0].textContent, /2/)
+  assert.match(cats[0].className, /w-full/)
+  assert.equal(document.querySelectorAll('#items li').length, 2)
+  assert.equal(document.querySelector('[data-list-fav]').dataset.listFav, String(first.id))
+  const toggle = document.querySelector('[data-channel-layout]')
+  assert.equal(toggle.textContent.trim(), 'Cards')
+  setRedraw(renderCatalog)
+  cats[2].click()
+  assert.equal(state.shell.categoryIndex, 2)
+  assert.equal(state.shell.selectedItem.name, 'Beta')
+  assert.match(document.querySelector('#items li').textContent, /Beta/)
+})
+
+test('catálogo de séries usa a mesma listagem do ao vivo', () => {
+  const episode = { id: faker.number.int({ min: 10, max: 99 }), name: 'Gama', icon: '' }
+  state.shell = vodShell('series', [{ id: '1', name: 'Drama', items: [episode] }], episode)
+  renderCatalog()
+  assert.match(document.getElementById('catalog-grid').className, /grid-cols-\[18rem/)
+  assert.match(document.getElementById('detail').className, /hidden/)
+  assert.match(document.querySelector('#categories li').textContent, /Todos/)
+  assert.equal(document.querySelector('[data-list-fav]').dataset.listFav, String(episode.id))
+  assert.equal(document.querySelector('[data-channel-layout]').textContent.trim(), 'Cards')
+  setRedraw(renderCatalog)
+  document.querySelector('[data-channel-layout]').click()
+  assert.equal(state.channelLayout, 'card')
+  assert.match(document.getElementById('items').className, /flex-wrap/)
 })

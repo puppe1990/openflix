@@ -22,6 +22,9 @@ Repo: https://github.com/puppe1990/openflix
 Reverse-engineering notes for the reference APK (protocol, obfuscation, endpoints):
 [docs/reverse-engineering.md](docs/reverse-engineering.md).
 
+Map of the official Prime Video web endpoints (storefront, PRS/PES, DRM, CDN), captured
+from a logged-in session: [docs/prime-video-endpoints.md](docs/prime-video-endpoints.md).
+
 10-foot home: **Live / Movies / Series / Settings**. Arrows and Enter. Local demo, no network.
 
 On the Tauri app, playlists, favorites, and resume live in `life-tv.sqlite` (0600) in the app data directory. Xtream passwords stay in the `secrets.json` vault.

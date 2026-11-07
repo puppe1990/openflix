@@ -1,10 +1,13 @@
 import { shouldConsumeEscape } from '../src/fullscreen.mjs'
-import { createTvShell, focusHome, handleKey, openHomeTile } from '../src/tvShell.mjs'
+import { focusHome, goBack, handleKey, openHomeTile } from '../src/tvShell.mjs'
 import { BRAND } from './config.mjs'
 import { byId } from './dom.mjs'
 import { exitPlayerFullscreen, isPlayerFullscreen, togglePlayerFullscreen } from './fullscreen.mjs'
 import { Hls } from './vendor/hls.mjs'
 import { setHlsEngine } from './playerView.mjs'
+import { readPrimeCookie, savePrimeCookie } from './primeSession.mjs'
+import { handlePrimeKey } from './primeView.mjs'
+import { PRIME_SCREEN_EVENT, openPrimeVideo } from './primeVideo.mjs'
 import { renderAll } from './render.mjs'
 
 setHlsEngine(Hls)
@@ -13,23 +16,20 @@ import {
   bootSeed,
   bootSeedLists,
   discover,
-  fillCatalog,
   hydrateSettingsForm,
   openSavedPlaylist,
   saveM3uPlaylist,
   savePlaylist,
   startDemo,
 } from './session.mjs'
+import { transitionTo } from './screenFlow.mjs'
 import { setRedraw, state } from './state.mjs'
 import { loadStores, playlistStore } from './stores.mjs'
 
 setRedraw(renderAll)
 
 async function applyShell(next) {
-  if (next === state.shell) return
-  state.shell = next
-  if (state.shell.screen === 'catalog' && !state.shell.catalog) await fillCatalog()
-  renderAll()
+  await transitionTo(next)
 }
 
 async function onTile(id) {
@@ -38,8 +38,11 @@ async function onTile(id) {
 
 function goToScreen({ screen, catalogKind = null }) {
   if (screen === 'home') {
-    state.shell = createTvShell()
-    renderAll()
+    void transitionTo(goBack(state.shell))
+    return
+  }
+  if (screen === 'prime') {
+    void transitionTo({ ...state.shell, screen: 'prime' })
     return
   }
   void onTile(screen === 'settings' ? 'settings' : catalogKind)
@@ -50,6 +53,10 @@ async function onKey(event) {
   if (event.key === 'Escape' && shouldConsumeEscape(isPlayerFullscreen())) {
     event.preventDefault()
     await exitPlayerFullscreen()
+    return
+  }
+  if (state.shell.screen === 'prime' && handlePrimeKey(event.key)) {
+    event.preventDefault()
     return
   }
   if (
@@ -74,8 +81,34 @@ function wireHomeTiles() {
   })
 }
 
+function wirePrimeScreen() {
+  document.addEventListener(PRIME_SCREEN_EVENT, () => goToScreen({ screen: 'prime' }))
+}
+
+async function wirePrimeCookie() {
+  const field = byId('primeCookie')
+  const saved = await readPrimeCookie()
+  if (saved && field) field.value = saved
+  byId('primeCookieBtn').addEventListener('click', async () => {
+    try {
+      await savePrimeCookie(field.value)
+      state.errorText = ''
+    } catch (error) {
+      state.errorText = `prime video recusou: ${error.message}`
+    }
+    state.redraw()
+  })
+}
+
 function wireTabs() {
-  for (const id of ['tab-inicio', 'tab-live', 'tab-movies', 'tab-series', 'tab-settings']) {
+  for (const id of [
+    'tab-inicio',
+    'tab-live',
+    'tab-movies',
+    'tab-series',
+    'tab-prime',
+    'tab-settings',
+  ]) {
     byId(id).addEventListener('click', () => {
       const button = byId(id)
       if (button.dataset.catalog) {
@@ -94,10 +127,13 @@ async function boot() {
   byId('demoBtn').addEventListener('click', startDemo)
   byId('discoverBtn').addEventListener('click', discover)
   byId('m3uBtn').addEventListener('click', saveM3uPlaylist)
+  byId('primeBtn').addEventListener('click', openPrimeVideo)
   byId('playlistForm').addEventListener('submit', savePlaylist)
   byId('search').addEventListener('input', renderAll)
   wireHomeTiles()
   wireTabs()
+  wirePrimeScreen()
+  await wirePrimeCookie()
   document.querySelector('a[href="#home"]')?.addEventListener('click', (event) => {
     event.preventDefault()
     goToScreen({ screen: 'home' })

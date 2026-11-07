@@ -19,6 +19,9 @@ npm run tauri:app   # target-app/OpenFlix.app
 
 Pre-commit: lint-staged + `npm test`. CI GitHub Actions = `npm run ci`.
 
+Mapa dos endpoints oficiais do Prime Video (loja, PRS/PES, DRM, CDN):
+`docs/prime-video-endpoints.md`.
+
 ## Configuração (sem hardcode)
 
 - Identidade do app (nome, `identifier`, versão) mora em `src-tauri/tauri.conf.json`;
@@ -34,11 +37,15 @@ Pre-commit: lint-staged + `npm test`. CI GitHub Actions = `npm run ci`.
 
 - `app.js` — wiring: atalhos, abas, boot (não desenha nada).
 - `session.mjs` — boot/seed/rotação de portal, catálogo e playlist.
-- `catalogView.mjs` — home, abas e catálogo em 3 colunas.
+- `catalogView.mjs` — home, abas e catálogo em duas colunas (categorias | itens).
 - `playerView.mjs` — vídeo, resume, EPG, catch-up, PiP e player externo.
+- `primeVideo.mjs` — atalho da aba: dispara o evento que abre a tela Prime.
+- `primeClient.mjs` — GET `/api/enrichNav` e POST `/api/getLandingPage` (Tauri `prime_request` ou fetch).
+- `primeSession.mjs` — cookie opcional no cofre (`prime_cookie`) ou sessionStorage.
+- `primeView.mjs` — catálogo nativo 10-foot: trilho, fileiras, detalhe, `handlePrimeKey`.
 - `render.mjs` — `renderAll()` a partir de `state`.
 - `state.mjs` / `stores.mjs` / `bridge.mjs` / `dom.mjs` — estado, stores, Tauri/storage, helpers DOM.
-- Núcleo puro e testado em `src/`; views não têm teste, então valide rodando o app.
+- Núcleo puro e testado em `src/` (`primeApi`, `primeNav`, `primeLanding`, `primeLandingForm`, `primeCookie`, `primeFocus`). Shell Tauri: `src-tauri/src/prime_api.rs` (allowlist, cookie do cofre). `primeView` tem teste; o resto das views valide rodando o app.
 
 ## Code style
 

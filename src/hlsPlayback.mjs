@@ -1,4 +1,5 @@
 import { createHlsFetchLoader } from './hlsFetchLoader.mjs'
+import { seekToLiveEdge } from './liveEdge.mjs'
 
 const HLS_TYPE = 'application/vnd.apple.mpegurl'
 
@@ -6,6 +7,9 @@ function playNative(video, url) {
   video.src = url
   return {
     kind: 'native',
+    seekToLive() {
+      return seekToLiveEdge(video, null)
+    },
     destroy() {
       video.removeAttribute('src')
     },
@@ -29,7 +33,10 @@ function wireHlsEvents(hls, Hls, video, onFatalError) {
     })
   }
   if (Hls.Events.MANIFEST_PARSED) {
-    hls.on(Hls.Events.MANIFEST_PARSED, () => playWhenReady(video))
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      playWhenReady(video)
+      seekToLiveEdge(video, hls)
+    })
   }
 }
 
@@ -44,6 +51,9 @@ function playHlsJs(video, url, Hls, fetchFn, onFatalError) {
   hls.attachMedia(video)
   return {
     kind: 'hlsjs',
+    seekToLive() {
+      return seekToLiveEdge(video, hls)
+    },
     destroy() {
       hls.destroy()
     },

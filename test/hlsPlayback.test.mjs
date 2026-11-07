@@ -92,6 +92,51 @@ test('depois do manifesto o hls.js chama play no video', () => {
   assert.equal(plays.length, 1)
 })
 
+test('sessão hls.js expõe seekToLive na borda liveSyncPosition', () => {
+  const video = document.createElement('video')
+  const edge = faker.number.float({ min: 40, max: 90, fractionDigits: 1 })
+  video.currentTime = 2
+  class LiveHls extends FakeHls {
+    get liveSyncPosition() {
+      return edge
+    }
+  }
+  const session = attachHlsPlayback(video, liveUrl(), {
+    Hls: LiveHls,
+    fetch: async () => {},
+    preferNative: false,
+  })
+  assert.equal(session.seekToLive(), true)
+  assert.equal(video.currentTime, edge)
+})
+
+test('depois do manifesto live o hls.js pula para liveSyncPosition', () => {
+  const video = document.createElement('video')
+  const edge = faker.number.float({ min: 50, max: 110, fractionDigits: 1 })
+  video.currentTime = 0
+  video.play = () => Promise.resolve()
+  class ReadyLiveHls extends FakeHls {
+    static Events = { MANIFEST_PARSED: 'hlsManifestParsed', ERROR: 'hlsError' }
+    get liveSyncPosition() {
+      return edge
+    }
+    on(event, cb) {
+      this.listeners = this.listeners ?? {}
+      this.listeners[event] = cb
+    }
+    attachMedia(media) {
+      super.attachMedia(media)
+      this.listeners?.hlsManifestParsed?.()
+    }
+  }
+  attachHlsPlayback(video, liveUrl(), {
+    Hls: ReadyLiveHls,
+    fetch: async () => {},
+    preferNative: false,
+  })
+  assert.equal(video.currentTime, edge)
+})
+
 test('destroy da sessão hls.js chama destroy do engine', () => {
   const video = document.createElement('video')
   const hls = []

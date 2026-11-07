@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { beforeEach, test } from 'node:test'
 import { faker } from './factories.mjs'
-import { nowAndNext, parseXmltvStamp } from '../src/xmltvNowNext.mjs'
+import { indexProgramsByChannel, nowAndNext, parseXmltvStamp } from '../src/xmltvNowNext.mjs'
 import { parseXmltv } from '../src/parseXmltv.mjs'
 
 beforeEach(() => {
@@ -42,4 +42,57 @@ test('canal sem programa agora devolve null', () => {
     nowAndNext(programs, { channelId: 'b', now: Date.UTC(2026, 9, 30, 18, 30, 0) }),
     null,
   )
+})
+
+test('indexa programas por canal com janela já convertida', () => {
+  const sports = faker.string.alpha(6)
+  const news = faker.string.alpha(6)
+  const programs = [
+    {
+      channelId: sports,
+      start: '20261030180000 +0000',
+      stop: '20261030200000 +0000',
+      title: faker.word.words(2),
+    },
+    {
+      channelId: news,
+      start: '20261030190000 +0000',
+      stop: '20261030210000 +0000',
+      title: faker.word.words(2),
+    },
+    {
+      channelId: sports,
+      start: '20261030200000 +0000',
+      stop: '20261030220000 +0000',
+      title: faker.word.words(2),
+    },
+  ]
+  const index = indexProgramsByChannel(programs)
+  assert.equal(index.get(sports).length, 2)
+  assert.equal(index.get(news).length, 1)
+  assert.ok(Number.isFinite(index.get(sports)[0].from))
+  assert.ok(Number.isFinite(index.get(sports)[0].to))
+})
+
+test('nowAndNext lê o índice por canal', () => {
+  const channel = faker.string.alpha(6)
+  const current = faker.word.words(2)
+  const upcoming = faker.word.words(2)
+  const index = indexProgramsByChannel([
+    {
+      channelId: channel,
+      start: '20261030180000 +0000',
+      stop: '20261030200000 +0000',
+      title: current,
+    },
+    {
+      channelId: channel,
+      start: '20261030200000 +0000',
+      stop: '20261030220000 +0000',
+      title: upcoming,
+    },
+  ])
+  const listing = nowAndNext(index, { channelId: channel, now: Date.UTC(2026, 9, 30, 19, 0, 0) })
+  assert.equal(listing.title, current)
+  assert.equal(listing.nextTitle, upcoming)
 })

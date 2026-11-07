@@ -22,6 +22,7 @@
         <button type="button" id="tab-live" data-catalog="live">Ao vivo</button>
         <button type="button" id="tab-movies" data-catalog="movies">Filmes</button>
         <button type="button" id="tab-series" data-catalog="series">Séries</button>
+        <button type="button" id="tab-prime" data-screen="prime">Prime Video</button>
         <button type="button" id="tab-settings" data-screen="settings">Ajustes</button>
       </nav>
       <div class="relative min-w-[200px] flex-1 md:max-w-[280px]">
@@ -176,7 +177,40 @@
             </button>
           </div>
         </form>
+        <div class="mt-10 border-t border-line pt-6">
+          <h2 class="m-0 mb-2 font-display text-[22px] font-bold tracking-tight">Prime Video</h2>
+          <p class="mb-4 max-w-[46ch] text-[14px] text-mute">
+            Catálogo nativo pelos endpoints da loja. Cole o header Cookie da sessão Amazon se quiser
+            ver a sua conta; a reprodução continua no site oficial.
+          </p>
+          <label class="mb-3 grid max-w-[46ch] gap-2 text-[13px] text-mute" for="primeCookie">
+            Cookie da sessão
+            <textarea
+              id="primeCookie"
+              rows="3"
+              class="w-full rounded-lg border-0 bg-panel p-3 font-sans text-[13px] text-ink outline-none focus:ring-1 focus:ring-accent"
+            ></textarea>
+          </label>
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              id="primeCookieBtn"
+              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+            >
+              Guardar cookie
+            </button>
+            <button
+              type="button"
+              id="primeBtn"
+              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+            >
+              Abrir Prime Video
+            </button>
+          </div>
+        </div>
       </section>
+
+      <section id="prime" class="pt-6" hidden></section>
 
       <p id="error" class="mt-6 min-h-[1.4em] text-[16px] text-warn" role="alert"></p>
     </main>
@@ -189,6 +223,37 @@
       aria-label="Voltar ao player"
       tabindex="0"
     ></aside>
+
+    <div
+      id="screen-spinner"
+      hidden
+      class="screen-spinner-veil fixed inset-0 z-[80] grid place-items-center"
+      role="status"
+      aria-live="polite"
+      aria-busy="false"
+    >
+      <div class="flex flex-col items-center gap-5">
+        <div class="screen-spinner-mark">
+          <span class="screen-spinner-glow"></span>
+          <svg
+            class="screen-spinner-orbit screen-spinner-orbit--slow"
+            viewBox="0 0 80 80"
+            aria-hidden="true"
+          >
+            <circle class="screen-spinner-track" cx="40" cy="40" r="34" />
+            <circle class="screen-spinner-arc screen-spinner-arc--outer" cx="40" cy="40" r="34" />
+          </svg>
+          <svg class="screen-spinner-orbit" viewBox="0 0 80 80" aria-hidden="true">
+            <circle class="screen-spinner-arc" cx="40" cy="40" r="22" />
+          </svg>
+          <span class="screen-spinner-core"></span>
+        </div>
+        <p
+          id="screen-spinner-label"
+          class="m-0 font-display text-[15px] font-bold tracking-[0.18em] text-ink uppercase"
+        ></p>
+      </div>
+    </div>
 
     <script type="module" src="./app.js"></script>
   </body>

@@ -3,6 +3,7 @@
 mod app_paths;
 mod db;
 mod player;
+mod prime_api;
 mod secrets;
 mod seed;
 
@@ -12,6 +13,17 @@ use tauri::AppHandle;
 #[tauri::command]
 fn play_sidecar(url: String) -> Result<(), String> {
     player::play(&url)
+}
+
+/// Proxy allowlist do BFF Prime Video (enrichNav / getLandingPage).
+#[tauri::command]
+async fn prime_request(
+    app: AppHandle,
+    method: String,
+    path: String,
+    body: Option<String>,
+) -> Result<String, String> {
+    prime_api::request(&app, &method, &path, body.as_deref()).await
 }
 
 /// Grava a senha da playlist no cofre local 0600.
@@ -49,6 +61,7 @@ fn main() {
         .plugin(tauri_plugin_http::init())
         .invoke_handler(tauri::generate_handler![
             play_sidecar,
+            prime_request,
             secret_set,
             secret_get,
             seed_read,
