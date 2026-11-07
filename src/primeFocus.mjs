@@ -40,9 +40,10 @@ export function movePrimeFocus(focus, key, { destCount, rows, hasDetail = false 
   return focus
 }
 
-/** Ação de Enter/Escape a partir do foco. */
+/** Ação de Enter/Escape a partir do foco; no detalhe Enter manda assistir. */
 export function primeFocusAction(focus, key, { hasDetail }) {
   if (hasDetail && (key === 'Escape' || key === 'Backspace')) return 'close-detail'
+  if (hasDetail && key === 'Enter') return 'play-detail'
   if (key !== 'Enter') return null
   if (focus.zone === 'rail') return 'open-dest'
   if (focus.zone === 'rows') return 'open-detail'

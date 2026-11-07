@@ -40,6 +40,53 @@ test('parseLanding vira fileiras com capa, ficha e URL absoluta', () => {
   assert.equal(card.href, 'https://www.primevideo.com/-/pt/detail/0R6EZ1YUM2278FTY42NGHM7KJO')
 })
 
+test('parseLanding usa o horário ao vivo do evento como selo', () => {
+  const entity = fakerPrimeEntity({
+    title: 'Atlético MG x Grêmio',
+    titleID: 'amzn1.dv.gti.sport',
+    entitlement: 'Incluído no Prime',
+  })
+  entity.entityType = 'EVENT'
+  entity.liveInfo = { status: 'UPCOMING', timeBadge: 'Ao vivo às 17:00 BRT' }
+  const page = parseLanding(
+    fakerPrimeLanding({
+      containers: [
+        { containerType: 'BeardSupportedCarousel', title: 'Ao vivo', entities: [entity] },
+      ],
+    }),
+  )
+  assert.equal(page.rows[0].cards[0].entitlement, 'Ao vivo às 17:00 BRT')
+})
+
+test('parseLanding guarda liga sem titleID pelo impressionId', () => {
+  const page = parseLanding(
+    fakerPrimeLanding({
+      containers: [
+        {
+          containerType: 'Nodes',
+          title: 'Explorar mais ligas',
+          entities: [
+            {
+              displayTitle: 'Série A',
+              impressionId: 'amzn1.dv.icid.serie-a',
+              images: { cover: { url: 'https://m.media-amazon.com/images/S/league.png' } },
+              link: { url: '/-/pt/tournament/amzn1.dv.icid.serie-a' },
+            },
+          ],
+        },
+      ],
+    }),
+  )
+  assert.equal(page.rows.length, 1)
+  assert.equal(page.rows[0].title, 'Explorar mais ligas')
+  assert.equal(page.rows[0].cards[0].title, 'Série A')
+  assert.equal(page.rows[0].cards[0].titleId, 'amzn1.dv.icid.serie-a')
+  assert.equal(
+    page.rows[0].cards[0].href,
+    'https://www.primevideo.com/-/pt/tournament/amzn1.dv.icid.serie-a',
+  )
+})
+
 test('parseLanding recusa tipo errado e marca hasFailed', () => {
   assert.throws(
     () => parseLanding({ __type: 'nope' }),

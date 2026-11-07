@@ -46,7 +46,7 @@ test('tela Prime lista o trilho nativo e as fileiras, sem palco de webview', () 
   const dests = [...root.querySelectorAll('[data-prime-dest]')]
   assert.deepEqual(
     dests.map((node) => node.dataset.primeDest),
-    ['home:home', 'genre:av_genre_action', 'merch:mgForYou', 'home:store'],
+    ['home:home', 'home:Sports', 'genre:av_genre_action', 'merch:mgForYou', 'home:store'],
   )
   assert.match(root.textContent, /Feito para você/)
   assert.match(root.textContent, /Suspense psicológico/)
@@ -62,8 +62,37 @@ test('card abre o detalhe; Escape some o overlay', () => {
   const overlay = document.getElementById('primeDetail')
   assert.ok(overlay)
   assert.match(overlay.textContent, /Breakdown/)
+  assert.match(document.getElementById('primeDetailPlay').textContent, /Assistir/)
+  assert.match(document.getElementById('primeDetailBrowser').textContent, /navegador/i)
   document.getElementById('primeDetailClose').click()
   assert.equal(document.getElementById('primeDetail'), null)
+})
+
+test('aba Prime tem entrada para a janela oficial no cabeçalho', () => {
+  renderPrime()
+  assert.match(document.getElementById('primeOpenBtn').textContent, /Abrir Prime Video/)
+})
+
+test('Assistir dispara prime_open_player com o href oficial do card', async () => {
+  const calls = []
+  globalThis.__TAURI__ = {
+    core: {
+      invoke: async (command, args) => {
+        calls.push({ command, args })
+      },
+    },
+  }
+  try {
+    renderPrime()
+    document.querySelector('[data-prime-card]').click()
+    document.getElementById('primeDetailPlay').click()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  } finally {
+    delete globalThis.__TAURI__
+  }
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].command, 'prime_open_player')
+  assert.match(calls[0].args.url, /^https:\/\/www\.primevideo\.com\/-\/pt\/detail\//)
 })
 
 test('tela Prime fica oculta fora da aba', () => {

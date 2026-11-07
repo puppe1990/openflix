@@ -35,17 +35,18 @@ Mapa dos endpoints oficiais do Prime Video (loja, PRS/PES, DRM, CDN):
 
 ## Mapa do web/ (cada módulo < 200 linhas)
 
-- `app.js` — wiring: atalhos, abas, boot (não desenha nada).
+- `app.js` — wiring: atalhos, abas (inclui Ajustes internos), boot (não desenha nada).
 - `session.mjs` — boot/seed/rotação de portal, catálogo e playlist.
 - `catalogView.mjs` — home, abas e catálogo em duas colunas (categorias | itens).
 - `playerView.mjs` — vídeo, resume, EPG, catch-up, PiP e player externo.
 - `primeVideo.mjs` — atalho da aba: dispara o evento que abre a tela Prime.
-- `primeClient.mjs` — GET `/api/enrichNav` e POST `/api/getLandingPage` (Tauri `prime_request` ou fetch).
-- `primeSession.mjs` — cookie opcional no cofre (`prime_cookie`) ou sessionStorage.
+- `primeClient.mjs` — GET `/api/enrichNav` e POST `/api/getLandingPage` (Tauri `prime_request` ou fetch). Trilho: Início + Esportes (`home:Sports`) + `categoryGroups`.
+- `primeSession.mjs` — sessão no cofre (`prime_cookie`), sync do webview oficial e logout; sessionStorage no preview.
 - `primeView.mjs` — catálogo nativo 10-foot: trilho, fileiras, detalhe, `handlePrimeKey`.
+- `primeWindow.mjs` — login/player na janela oficial: `prime_sign_in`, `prime_open_player`, `prime_open_external`.
 - `render.mjs` — `renderAll()` a partir de `state`.
 - `state.mjs` / `stores.mjs` / `bridge.mjs` / `dom.mjs` — estado, stores, Tauri/storage, helpers DOM.
-- Núcleo puro e testado em `src/` (`primeApi`, `primeNav`, `primeLanding`, `primeLandingForm`, `primeCookie`, `primeFocus`). Shell Tauri: `src-tauri/src/prime_api.rs` (allowlist, cookie do cofre). `primeView` tem teste; o resto das views valide rodando o app.
+- Núcleo puro e testado em `src/` (`primeApi`, `primeNav`, `primeLanding`, `primeLandingForm`, `primeCookie`, `primePlay`, `primeFocus`, `settingsTabs`). Ajustes internos: Playlists (M3U), Streaming (XC) e Prime Video (login, sessão e cookie). Shell Tauri: `src-tauri/src/prime_api.rs` (allowlist, cookie do cofre) e `src-tauri/src/prime_window.rs` (webview oficial, jar de cookie, logout). `primeView` tem teste; o resto das views valide rodando o app.
 
 ## Code style
 

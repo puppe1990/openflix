@@ -665,18 +665,34 @@ Catálogo nativo 10-foot (sem webview, sem `#primeStage`):
 - `src/primeApi.mjs` + `src-tauri/src/prime_api.rs`: allowlist `GET /api/enrichNav` e
   `POST /api/getLandingPage`. No Tauri o comando `prime_request` faz o HTTP com reqwest
   (cookie do cofre, UA Chrome, `Accept-Language: pt-BR`). No preview web cai no `fetch`.
-- `src/primeNav.mjs`: `EnrichNavOutput` → destinos. `home:home` (Início) entra na frente;
-  o resto vem de `categoryGroups.subNodes` (`swiftPageType`/`swiftPageId`).
+- `src/primeNav.mjs`: `EnrichNavOutput` → destinos. Chrome estático na frente:
+  `home:home` (Início) e `home:Sports` (Esportes, rota `/sports`). O resto vem de
+  `categoryGroups.subNodes` (`swiftPageType`/`swiftPageId`). GET_CATEGORIES não
+  devolve as abas do chrome (Filmes/Séries/Esportes/TV ao vivo).
 - `src/primeLandingForm.mjs` + `src/primeLanding.mjs`: form com schemes
   `desktopOSX` / `web-decoration-gti-v4` / `web-features-v6` / `web-explore-v48` e
   `GetLandingPageOutput` → fileiras de cards (`titleId`, capa, ano, sinopse, `href`).
 - `web/primeView.mjs`: trilho à esquerda, fileiras à direita, overlay de ficha,
-  “Ver na Amazon” abre o `href` oficial. D-pad em `src/primeFocus.mjs`.
+  `Assistir no app` / `Abrir no navegador`. D-pad em `src/primeFocus.mjs` (Enter no
+  detalhe = assistir).
 - Cookie opcional em Ajustes (`web/primeSession.mjs`, conta `prime_cookie`). Sem cookie
-  o BFF ainda devolve a loja de convidado (home / Feito para você). Esportes
-  (`hasFailed`) fica de fora do trilho hardcoded.
-- **Playback:** fora de escopo. DASH+CENC / Widevine / FairPlay continuam no player
-  oficial da Amazon. O OpenFlix não pede PRS, PES nem licença.
+  o BFF ainda devolve a loja de convidado (home / Feito para você / Esportes
+  `pageType=home&pageId=Sports`). Eventos usam `liveInfo.timeBadge`; ligas sem
+  `titleID` entram pelo `impressionId`.
+- **Login:** `Entrar no Prime Video` abre `https://www.primevideo.com/` num
+  `WebviewWindow` do app (`src-tauri/src/prime_window.rs`, label `prime-oficial`). O
+  formulário, o MFA e o captcha são os da Amazon; nenhuma senha passa pelo OpenFlix. A
+  janela usa o data store persistente do WKWebView, então a sessão sobrevive ao restart.
+- **Sessão:** `Usar sessão deste app` chama `prime_session_cookie`, que lê o jar do próprio
+  webview (`Webview::cookies()`), mantém só domínio `primevideo.com` (nada de `.amazon.com`)
+  e grava o header no cofre 0600. É o mesmo cookie que o catálogo nativo usa. `Sair` limpa o
+  webview (`clear_all_browsing_data`) e apaga a entrada do cofre.
+- **Player:** `Assistir no app` abre `https://www.primevideo.com/detail/{titleId}` na mesma
+  janela (`prime_open_player`, allowlist de host https). O player oficial da Amazon toca o
+  DASH/CENC dentro do OpenFlix; `Abrir no navegador` é o fallback (`prime_open_external`).
+- **Playback próprio:** fora de escopo. O OpenFlix não pede PRS, PES nem licença Widevine,
+  não monta `playbackEnvelope` e não abre `sessionHandoffToken` — esse caminho exigiria
+  clonar o DRM da Amazon, o que continua vetado neste projeto.
 
 ## 11. Evidências na captura
 

@@ -11,6 +11,19 @@ export const PRIME_HOME_DEST = {
   url: PRIME_ORIGIN,
 }
 
+/** Chrome de Esportes; GET_CATEGORIES só devolve gêneros e coleções. */
+export const PRIME_SPORTS_DEST = {
+  key: 'home:Sports',
+  label: 'Esportes',
+  group: 'Prime Video',
+  pageType: 'home',
+  pageId: 'Sports',
+  targetId: '',
+  url: `${PRIME_ORIGIN}/sports`,
+}
+
+export const PRIME_CHROME_DESTS = [PRIME_HOME_DEST, PRIME_SPORTS_DEST]
+
 function destKey(pageType, pageId) {
   return `${pageType}:${pageId}`
 }
@@ -34,7 +47,7 @@ function nodeToDest(node, group) {
   }
 }
 
-/** Converte EnrichNavOutput no trilho: Início + gêneros + coleções. */
+/** Converte EnrichNavOutput no trilho: chrome (Início, Esportes) + gêneros + coleções. */
 export function parseEnrichNav(payload) {
   const type = payload?.__type ?? payload
   if (type !== 'atv.wps#EnrichNavOutput') {
@@ -44,7 +57,7 @@ export function parseEnrichNav(payload) {
   if (!Array.isArray(groups)) {
     throw new Error('enrichNav recusado: recebido sem categoryGroups, esperado lista de grupos')
   }
-  const dests = [PRIME_HOME_DEST]
+  const dests = [...PRIME_CHROME_DESTS]
   for (const group of groups) {
     const label = group.label ?? ''
     for (const node of group.subNodes ?? []) dests.push(nodeToDest(node, label))

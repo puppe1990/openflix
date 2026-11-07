@@ -4,6 +4,7 @@ mod app_paths;
 mod db;
 mod player;
 mod prime_api;
+mod prime_window;
 mod secrets;
 mod seed;
 
@@ -24,6 +25,36 @@ async fn prime_request(
     body: Option<String>,
 ) -> Result<String, String> {
     prime_api::request(&app, &method, &path, body.as_deref()).await
+}
+
+/// Abre a janela oficial do Prime Video para o login da conta Amazon.
+#[tauri::command]
+async fn prime_sign_in(app: AppHandle) -> Result<(), String> {
+    prime_window::sign_in(&app)
+}
+
+/// Abre o detalhe do título na janela oficial (o player roda no site da Amazon).
+#[tauri::command]
+async fn prime_open_player(app: AppHandle, url: String) -> Result<(), String> {
+    prime_window::open_player(&app, &url)
+}
+
+/// Abre o mesmo título no navegador padrão do sistema.
+#[tauri::command]
+async fn prime_open_external(url: String) -> Result<(), String> {
+    prime_window::open_external(&url)
+}
+
+/// Copia a sessão do webview oficial para o cofre e devolve o header Cookie.
+#[tauri::command]
+async fn prime_session_cookie(app: AppHandle) -> Result<String, String> {
+    prime_window::session_cookie(&app)
+}
+
+/// Limpa o webview oficial e apaga o cookie do cofre.
+#[tauri::command]
+async fn prime_sign_out(app: AppHandle) -> Result<(), String> {
+    prime_window::sign_out(&app)
 }
 
 /// Grava a senha da playlist no cofre local 0600.
@@ -62,6 +93,11 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             play_sidecar,
             prime_request,
+            prime_sign_in,
+            prime_open_player,
+            prime_open_external,
+            prime_session_cookie,
+            prime_sign_out,
             secret_set,
             secret_get,
             seed_read,

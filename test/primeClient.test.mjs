@@ -28,6 +28,7 @@ beforeEach(() => {
 test('loadPrimeNav chama enrichNav e devolve Início + destinos', async () => {
   const dests = await loadPrimeNav()
   assert.equal(dests[0].key, PRIME_HOME_DEST.key)
+  assert.ok(dests.some((dest) => dest.key === 'home:Sports'))
   assert.ok(dests.some((dest) => dest.key === 'merch:mgForYou'))
   assert.match(calls[0].url, /\/api\/enrichNav\?enrichmentType=GET_CATEGORIES/)
   assert.equal(calls[0].method, 'GET')

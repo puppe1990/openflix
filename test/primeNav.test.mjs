@@ -16,12 +16,22 @@ test('parseEnrichNav coloca Início na frente e destinos do enrichNav em seguida
   assert.equal(dests[0].label, PRIME_HOME_DEST.label)
   assert.deepEqual(
     dests.slice(1).map((dest) => dest.key),
-    ['genre:av_genre_action', 'merch:mgForYou', 'home:store'],
+    ['home:Sports', 'genre:av_genre_action', 'merch:mgForYou', 'home:store'],
   )
-  assert.equal(dests[1].group, 'Gêneros')
-  assert.equal(dests[2].label, 'Feito para você')
-  assert.match(dests[2].url, /^https:\/\/www\.primevideo\.com\/collection\/mgForYou/)
-  assert.ok(dests[2].targetId.startsWith('V2='))
+  assert.equal(dests[2].group, 'Gêneros')
+  assert.equal(dests[3].label, 'Feito para você')
+  assert.match(dests[3].url, /^https:\/\/www\.primevideo\.com\/collection\/mgForYou/)
+  assert.ok(dests[3].targetId.startsWith('V2='))
+})
+
+test('parseEnrichNav coloca Esportes depois de Início mesmo sem o nó no enrichNav', () => {
+  const dests = parseEnrichNav(fakerPrimeNav())
+  assert.equal(dests[1].key, 'home:Sports')
+  assert.equal(dests[1].label, 'Esportes')
+  assert.equal(dests[1].pageType, 'home')
+  assert.equal(dests[1].pageId, 'Sports')
+  assert.equal(dests[1].group, 'Prime Video')
+  assert.equal(dests[1].url, 'https://www.primevideo.com/sports')
 })
 
 test('primeDest acha pela chave e recusa chave desconhecida', () => {
@@ -29,7 +39,7 @@ test('primeDest acha pela chave e recusa chave desconhecida', () => {
   assert.equal(primeDest(dests, 'merch:mgForYou').pageId, 'mgForYou')
   assert.throws(
     () => primeDest(dests, 'porn'),
-    /destino recusado: recebido porn, esperado home:home, genre:av_genre_action/,
+    /destino recusado: recebido porn, esperado home:home, home:Sports, genre:av_genre_action/,
   )
 })
 

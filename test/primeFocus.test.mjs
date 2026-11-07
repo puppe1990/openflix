@@ -26,4 +26,5 @@ test('Escape no detalhe fecha; seta esquerda no primeiro card volta ao trilho', 
   const next = movePrimeFocus(rowsFocus, 'ArrowLeft', { destCount: 3, rows })
   assert.equal(next.zone, 'rail')
   assert.equal(primeFocusAction(rowsFocus, 'Escape', { hasDetail: true }), 'close-detail')
+  assert.equal(primeFocusAction(rowsFocus, 'Enter', { hasDetail: true }), 'play-detail')
 })

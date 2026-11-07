@@ -1,12 +1,13 @@
 import { CHANNEL_CARD_PAGE } from '../src/channelLayout.mjs'
 import { createPrimeFocus } from '../src/primeFocus.mjs'
-import { PRIME_HOME_DEST } from '../src/primeNav.mjs'
+import { PRIME_CHROME_DESTS, PRIME_HOME_DEST } from '../src/primeNav.mjs'
+import { DEFAULT_SETTINGS_TAB } from '../src/settingsTabs.mjs'
 import { createTvShell } from '../src/tvShell.mjs'
 
 /** Estado vazio da aba Prime Video (catálogo nativo). */
 export function emptyPrime() {
   return {
-    dests: [PRIME_HOME_DEST],
+    dests: [...PRIME_CHROME_DESTS],
     destKey: PRIME_HOME_DEST.key,
     rows: [],
     detail: null,
@@ -29,6 +30,7 @@ export const state = {
   itemLimit: CHANNEL_CARD_PAGE,
   spinner: { busy: false, label: '', startedAt: 0 },
   prime: emptyPrime(),
+  settingsTab: DEFAULT_SETTINGS_TAB,
   redraw: () => {},
 }
 

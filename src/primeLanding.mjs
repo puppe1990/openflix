@@ -1,19 +1,20 @@
 import { absolutePrimeUrl } from './primeApi.mjs'
 
 function parseCard(entity) {
-  const titleId = entity?.titleID
+  const titleId = entity?.titleID || entity?.impressionId
   const title = entity?.displayTitle || entity?.title
   if (!titleId || !title) return null
   const cues = entity.entitlementCues ?? {}
+  const liveBadge = entity.liveInfo?.timeBadge ?? ''
   return {
     titleId,
     title,
-    coverUrl: entity.images?.cover?.url ?? '',
+    coverUrl: entity.images?.cover?.url || entity.images?.hero?.url || '',
     year: entity.releaseYear ?? '',
     runtime: entity.runtime ?? '',
     synopsis: entity.synopsis ?? '',
     badge: entity.maturityRatingBadge?.displayText ?? '',
-    entitlement: cues.focusMessage?.message ?? '',
+    entitlement: liveBadge || cues.focusMessage?.message || '',
     highValue: cues.highValueMessage?.message ?? '',
     href: absolutePrimeUrl(entity.link?.url ?? ''),
     entityType: entity.entityType ?? '',

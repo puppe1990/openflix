@@ -6,7 +6,7 @@ import {
 } from '../src/primeApi.mjs'
 import { parseLanding } from '../src/primeLanding.mjs'
 import { primeLandingForm } from '../src/primeLandingForm.mjs'
-import { parseEnrichNav, PRIME_HOME_DEST, primeDest } from '../src/primeNav.mjs'
+import { parseEnrichNav, PRIME_CHROME_DESTS, primeDest } from '../src/primeNav.mjs'
 import { tauriFetch, tauriInvoke } from './bridge.mjs'
 import { state } from './state.mjs'
 
@@ -61,7 +61,7 @@ async function fillNav() {
     state.prime.dests = await loadPrimeNav()
   } catch (error) {
     state.errorText = `prime video recusou: ${error.message}`
-    if (!state.prime.dests.length) state.prime.dests = [PRIME_HOME_DEST]
+    if (!state.prime.dests.length) state.prime.dests = [...PRIME_CHROME_DESTS]
   }
 }
 

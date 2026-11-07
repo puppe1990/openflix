@@ -1,8 +1,33 @@
 import { movePrimeFocus, primeFocusAction } from '../src/primeFocus.mjs'
+import { primePlayUrl } from '../src/primePlay.mjs'
 import { primeChipClass } from '../src/tvSkin.mjs'
 import { byId, el } from './dom.mjs'
 import { openPrimeDest } from './primeVideo.mjs'
+import { openPrimeBrowser, openPrimePlayer, openPrimeSignIn } from './primeWindow.mjs'
 import { state } from './state.mjs'
+
+/** Executa uma janela oficial e publica o erro quando o card não tem destino. */
+async function runPrimeWindow(action) {
+  try {
+    await action()
+    state.errorText = ''
+  } catch (error) {
+    state.errorText = `prime video recusou: ${error.message}`
+  }
+  state.redraw()
+}
+
+function playPrimeCard(card) {
+  return runPrimeWindow(() => openPrimePlayer(primePlayUrl(card)))
+}
+
+function browsePrimeCard(card) {
+  return runPrimeWindow(() => openPrimeBrowser(primePlayUrl(card)))
+}
+
+function openPrimeStore() {
+  return runPrimeWindow(openPrimeSignIn)
+}
 
 function groupedDests(dests) {
   const groups = []
@@ -110,13 +135,25 @@ function detailOverlay() {
   if (meta) panel.append(el('p', 'm-0 text-[14px] text-mute', meta))
   if (card.entitlement) panel.append(el('p', 'm-0 text-[14px] text-accent', card.entitlement))
   if (card.synopsis) panel.append(el('p', 'm-0 text-[15px] leading-relaxed', card.synopsis))
-  if (card.href) {
-    const link = el('a', 'text-[14px] font-bold text-ink', 'Ver na Amazon')
-    link.href = card.href
-    link.target = '_blank'
-    link.rel = 'noopener'
-    panel.append(link)
-  }
+  const actions = el('div', 'flex flex-wrap gap-3')
+  const play = el(
+    'button',
+    'cursor-pointer rounded-lg border-0 bg-action px-4 py-2 font-bold text-void',
+    'Assistir no app',
+  )
+  play.type = 'button'
+  play.id = 'primeDetailPlay'
+  play.addEventListener('click', () => void playPrimeCard(card))
+  const browser = el(
+    'button',
+    'cursor-pointer rounded-lg border-0 bg-row px-4 py-2 font-bold text-ink',
+    'Abrir no navegador',
+  )
+  browser.type = 'button'
+  browser.id = 'primeDetailBrowser'
+  browser.addEventListener('click', () => void browsePrimeCard(card))
+  actions.append(play, browser)
+  panel.append(actions)
   const close = el(
     'button',
     'cursor-pointer rounded-lg border-0 bg-row px-4 py-2 font-bold',
@@ -144,9 +181,18 @@ function primeHead() {
     el(
       'p',
       'm-0 max-w-[56ch] text-[13px] text-mute',
-      'Catálogo nativo pelos endpoints da loja. Reprodução continua no player oficial da Amazon.',
+      'Catálogo nativo pelos endpoints da loja. O player oficial da Amazon abre na janela do app.',
     ),
   )
+  const open = el(
+    'button',
+    'mt-2 w-fit cursor-pointer rounded-lg border-0 bg-action px-4 py-2 font-sans text-[15px] font-bold text-void',
+    'Abrir Prime Video no app',
+  )
+  open.type = 'button'
+  open.id = 'primeOpenBtn'
+  open.addEventListener('click', () => void openPrimeStore())
+  head.append(open)
   return head
 }
 
@@ -157,6 +203,10 @@ export function handlePrimeKey(key) {
   if (action === 'close-detail') {
     state.prime.detail = null
     state.redraw()
+    return true
+  }
+  if (action === 'play-detail') {
+    if (state.prime.detail) void playPrimeCard(state.prime.detail)
     return true
   }
   if (action === 'open-dest') {

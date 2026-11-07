@@ -1,13 +1,20 @@
 import { shouldConsumeEscape } from '../src/fullscreen.mjs'
+import { DEFAULT_SETTINGS_TAB, selectSettingsTab } from '../src/settingsTabs.mjs'
 import { focusHome, goBack, handleKey, openHomeTile } from '../src/tvShell.mjs'
 import { BRAND } from './config.mjs'
 import { byId } from './dom.mjs'
 import { exitPlayerFullscreen, isPlayerFullscreen, togglePlayerFullscreen } from './fullscreen.mjs'
 import { Hls } from './vendor/hls.mjs'
 import { setHlsEngine } from './playerView.mjs'
-import { readPrimeCookie, savePrimeCookie } from './primeSession.mjs'
+import {
+  readPrimeCookie,
+  savePrimeCookie,
+  signOutPrimeSession,
+  syncPrimeSession,
+} from './primeSession.mjs'
 import { handlePrimeKey } from './primeView.mjs'
 import { PRIME_SCREEN_EVENT, openPrimeVideo } from './primeVideo.mjs'
+import { openPrimeSignIn } from './primeWindow.mjs'
 import { renderAll } from './render.mjs'
 
 setHlsEngine(Hls)
@@ -100,6 +107,41 @@ async function wirePrimeCookie() {
   })
 }
 
+async function runPrimeAction(action, onDone) {
+  try {
+    const value = await action()
+    if (onDone) onDone(value)
+    state.errorText = ''
+  } catch (error) {
+    state.errorText = `prime video recusou: ${error.message}`
+  }
+  state.redraw()
+}
+
+function wirePrimeSession() {
+  const field = byId('primeCookie')
+  byId('primeSignInBtn').addEventListener('click', () => runPrimeAction(openPrimeSignIn))
+  byId('primeSyncBtn').addEventListener('click', () =>
+    runPrimeAction(syncPrimeSession, (header) => {
+      field.value = header
+    }),
+  )
+  byId('primeSignOutBtn').addEventListener('click', () =>
+    runPrimeAction(signOutPrimeSession, () => {
+      field.value = ''
+    }),
+  )
+}
+
+function wireSettingsTabs() {
+  byId('settingsTabs')?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-settings-tab]')
+    if (!button) return
+    state.settingsTab = selectSettingsTab(button.dataset.settingsTab)
+    state.redraw()
+  })
+}
+
 function wireTabs() {
   for (const id of [
     'tab-inicio',
@@ -121,6 +163,7 @@ function wireTabs() {
 }
 
 async function boot() {
+  state.settingsTab = DEFAULT_SETTINGS_TAB
   document.title = BRAND
   byId('brand').textContent = BRAND
   document.addEventListener('keydown', onKey)
@@ -132,7 +175,9 @@ async function boot() {
   byId('search').addEventListener('input', renderAll)
   wireHomeTiles()
   wireTabs()
+  wireSettingsTabs()
   wirePrimeScreen()
+  wirePrimeSession()
   await wirePrimeCookie()
   document.querySelector('a[href="#home"]')?.addEventListener('click', (event) => {
     event.preventDefault()

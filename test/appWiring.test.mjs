@@ -84,12 +84,57 @@ test('aba Início conserva o catálogo ao vivo já carregado', async () => {
   assert.equal(state.shell.catalog, catalog)
 })
 
+test('Ajustes abre na aba Playlists com Streaming e Prime Video ao lado', async () => {
+  const { SPINNER_MIN_MS } = await import('../src/screenSpinner.mjs')
+  await import(`../web/app.js?t=${Date.now()}`)
+  await settle()
+  document.getElementById('tab-settings').click()
+  await settle(SPINNER_MIN_MS + 80)
+  const labels = [...document.querySelectorAll('#settingsTabs [data-settings-tab]')].map((tab) =>
+    tab.textContent.trim(),
+  )
+  assert.deepEqual(labels, ['Playlists', 'Streaming', 'Prime Video'])
+  assert.equal(document.getElementById('settings-pane-playlists').hidden, false)
+  assert.equal(document.getElementById('settings-pane-streaming').hidden, true)
+  assert.equal(document.getElementById('settings-pane-prime').hidden, true)
+  assert.equal(document.getElementById('settingsLists').hidden, false)
+})
+
+test('Ajustes troca Playlists, Streaming e Prime Video sem sair da tela', async () => {
+  const { SPINNER_MIN_MS } = await import('../src/screenSpinner.mjs')
+  await import(`../web/app.js?t=${Date.now()}`)
+  await settle()
+  document.getElementById('tab-settings').click()
+  await settle(SPINNER_MIN_MS + 80)
+  document.getElementById('settings-tab-streaming').click()
+  assert.equal(document.getElementById('settings-pane-streaming').hidden, false)
+  assert.equal(document.getElementById('settings-pane-playlists').hidden, true)
+  assert.equal(document.getElementById('settingsLists').hidden, false)
+  document.getElementById('settings-tab-prime').click()
+  assert.equal(document.getElementById('settings-pane-prime').hidden, false)
+  assert.equal(document.getElementById('settings-pane-streaming').hidden, true)
+  assert.equal(document.getElementById('settingsLists').hidden, true)
+})
+
+test('Ajustes → Prime Video oferece login oficial, sessão do app e sair', async () => {
+  const { SPINNER_MIN_MS } = await import('../src/screenSpinner.mjs')
+  await import(`../web/app.js?t=${Date.now()}`)
+  await settle()
+  document.getElementById('tab-settings').click()
+  await settle(SPINNER_MIN_MS + 80)
+  document.getElementById('settings-tab-prime').click()
+  assert.match(document.getElementById('primeSignInBtn').textContent, /Entrar no Prime Video/)
+  assert.match(document.getElementById('primeSyncBtn').textContent, /sessão/i)
+  assert.match(document.getElementById('primeSignOutBtn').textContent, /Sair/i)
+})
+
 test('Ajustes leva para a aba Prime Video nativa', async () => {
   const { SPINNER_MIN_MS } = await import('../src/screenSpinner.mjs')
   await import(`../web/app.js?t=${Date.now()}`)
   await settle()
   document.getElementById('tab-settings').click()
   await settle(SPINNER_MIN_MS + 80)
+  document.getElementById('settings-tab-prime').click()
   document.getElementById('primeBtn').click()
   await settle(SPINNER_MIN_MS + 80)
   assert.equal(document.getElementById('prime').hidden, false)
@@ -107,6 +152,7 @@ test('aba Prime Video lista destinos do enrichNav e destaca o escolhido', async 
   assert.equal(root.hidden, false)
   const dests = [...document.querySelectorAll('#prime [data-prime-dest]')]
   assert.ok(dests.length >= 2)
+  assert.ok(document.querySelector('#prime [data-prime-dest="home:Sports"]'))
   document.querySelector('#prime [data-prime-dest="merch:mgForYou"]').click()
   await settle(SPINNER_MIN_MS + 80)
   const chosen = document.querySelector('#prime [data-prime-dest="merch:mgForYou"]')
