@@ -121,7 +121,7 @@ export function qualityPanelClass() {
 }
 
 export function hudOverlayClass() {
-  return 'pointer-events-none absolute inset-0 z-[5] flex flex-col justify-between bg-[linear-gradient(to_bottom,rgba(0,0,0,0.86)_0%,rgba(0,0,0,0.18)_26%,transparent_46%,rgba(0,0,0,0.28)_64%,rgba(0,0,0,0.92)_100%)] transition-opacity duration-300'
+  return 'pointer-events-auto absolute inset-0 z-[5] flex flex-col justify-between bg-[linear-gradient(to_bottom,rgba(0,0,0,0.86)_0%,rgba(0,0,0,0.18)_26%,transparent_46%,rgba(0,0,0,0.28)_64%,rgba(0,0,0,0.92)_100%)] transition-opacity duration-300'
 }
 
 export function hudTopClass() {
@@ -145,7 +145,7 @@ export function hudPauseClass() {
 }
 
 export function hudIconBtnClass() {
-  return 'inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-white'
+  return 'pointer-events-auto inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-white'
 }
 
 export function hudToolbarClass() {

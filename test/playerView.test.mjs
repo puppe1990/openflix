@@ -147,6 +147,49 @@ test('pause do HUD pausa o vídeo', () => {
   assert.equal(video.paused, true)
 })
 
+test('clique no palco do HUD pausa uma vez', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const overlay = document.querySelector('[data-player-hud]')
+  overlay.click()
+  assert.equal(video.paused, true)
+})
+
+test('slider de volume altera o vídeo e não some no flex', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const slider = document.querySelector('[data-player-volume]')
+  assert.ok(slider)
+  assert.match(slider.className, /shrink-0/)
+  assert.doesNotMatch(slider.className, /(^|\s)h-1(\s|$)/)
+  slider.value = '0.4'
+  slider.dispatchEvent(new dom.window.Event('input'))
+  assert.equal(video.volume, 0.4)
+  assert.equal(video.muted, false)
+})
+
+test('ícone de volume silencia o vídeo', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const mute = document.querySelector('[data-player-mute]')
+  assert.ok(mute)
+  mute.click()
+  assert.equal(video.muted, true)
+  mute.click()
+  assert.equal(video.muted, false)
+})
+
+test('espaço no HUD pausa o vídeo que está tocando', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: ' ', bubbles: true }))
+  assert.equal(video.paused, true)
+})
+
 test('player HLS liga autoplay e dispara play', () => {
   const url = openFla()
   renderPlayer()

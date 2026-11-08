@@ -103,8 +103,18 @@
 }
 
 #player:not([hidden]) #player-frame {
+  isolation: isolate;
   width: 100%;
   max-height: calc(100vh - 5.5rem);
+}
+
+#player-video {
+  position: relative;
+  z-index: 0;
+}
+
+[data-player-hud] {
+  transform: translate3d(0, 0, 0);
 }
 
 /* teatro: fora do @layer pra ganhar do `block` da URL e da max-height do quadro */

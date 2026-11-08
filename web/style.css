@@ -448,8 +448,8 @@
   .w-10 {
     width: calc(var(--spacing) * 10);
   }
-  .w-20 {
-    width: calc(var(--spacing) * 20);
+  .w-24 {
+    width: calc(var(--spacing) * 24);
   }
   .w-32 {
     width: calc(var(--spacing) * 32);
@@ -1304,8 +1304,16 @@
   display: none !important;
 }
 #player:not([hidden]) #player-frame {
+  isolation: isolate;
   width: 100%;
   max-height: calc(100vh - 5.5rem);
+}
+#player-video {
+  position: relative;
+  z-index: 0;
+}
+[data-player-hud] {
+  transform: translate3d(0, 0, 0);
 }
 body.is-fullscreen header, body.is-fullscreen #home, body.is-fullscreen #catalog, body.is-fullscreen #settings, body.is-fullscreen #error {
   display: none !important;

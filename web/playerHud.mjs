@@ -1,4 +1,5 @@
 import { fullscreenButtonLabel } from '../src/fullscreen.mjs'
+import { applyPlayerMediaAction, playerMediaAction } from '../src/playerKeys.mjs'
 import {
   cinemaBrandLabel,
   nextPlaybackRate,
@@ -33,6 +34,7 @@ import {
   ICON_SKIP_BACK,
   ICON_SKIP_FORWARD,
   ICON_VOLUME,
+  ICON_VOLUME_MUTED,
   iconSvg,
 } from './icons.mjs'
 
@@ -84,8 +86,11 @@ function skipButton(video, delta) {
 }
 
 function togglePlay(video) {
-  if (video.paused) video.play().catch(() => {})
-  else video.pause()
+  applyPlayerMediaAction(video, 'toggle-play')
+}
+
+function isHudChrome(node) {
+  return Boolean(node?.closest?.('button, input, a, [data-player-progress]'))
 }
 
 function seekBy(video, delta) {
@@ -178,9 +183,11 @@ function progressBar(video) {
 }
 
 function volumeControl(video) {
-  const wrap = el('div', 'flex items-center gap-2')
-  wrap.append(iconButton(ICON_VOLUME, 'Volume'))
-  const slider = el('input', 'h-1 w-20 cursor-pointer accent-accent')
+  const wrap = el('div', 'pointer-events-auto flex shrink-0 items-center gap-2')
+  const mute = iconButton(ICON_VOLUME, 'Mudo')
+  mute.dataset.playerMute = '1'
+  mute.addEventListener('click', () => applyPlayerMediaAction(video, 'mute'))
+  const slider = el('input', 'h-8 w-24 shrink-0 cursor-pointer accent-accent')
   slider.type = 'range'
   slider.min = '0'
   slider.max = '1'
@@ -190,7 +197,7 @@ function volumeControl(video) {
     video.volume = Number(slider.value)
     video.muted = video.volume === 0
   })
-  wrap.append(slider)
+  wrap.append(mute, slider)
   return wrap
 }
 
@@ -322,11 +329,23 @@ function paintTitle(overlay, item, chrome, qualityLabel) {
 
 function paintVolume(overlay, video) {
   const slider = overlay.querySelector('[data-player-volume]')
-  if (!slider) return
-  slider.value = String(video.muted ? 0 : video.volume)
+  if (slider) slider.value = String(video.muted ? 0 : video.volume)
+  const mute = overlay.querySelector('[data-player-mute]')
+  if (!mute) return
+  const silent = video.muted || video.volume === 0
+  mute.replaceChildren(iconSvg(silent ? ICON_VOLUME_MUTED : ICON_VOLUME, 22))
+  mute.setAttribute('aria-label', silent ? 'Ativar som' : 'Mudo')
 }
 
 function wireHud(frame, video) {
+  const overlay = frame.querySelector('[data-player-hud]')
+  overlay?.addEventListener('click', (event) => {
+    if (isHudChrome(event.target)) return
+    togglePlay(video)
+  })
+  overlay?.querySelector('[data-player-rate]')?.addEventListener('click', () => {
+    video.playbackRate = nextPlaybackRate(video.playbackRate || 1)
+  })
   if (video.dataset.hudWired === '1') return
   video.dataset.hudWired = '1'
   const paint = () => paintPlayerHud(frame, video)
@@ -336,10 +355,6 @@ function wireHud(frame, video) {
   video.addEventListener('pause', paint)
   video.addEventListener('volumechange', paint)
   video.addEventListener('ratechange', paint)
-  const overlay = frame.querySelector('[data-player-hud]')
-  overlay?.querySelector('[data-player-rate]')?.addEventListener('click', () => {
-    video.playbackRate = nextPlaybackRate(video.playbackRate || 1)
-  })
 }
 
 /** Liga/desliga o chrome do cinema (`data-hud-idle`). */
@@ -379,16 +394,28 @@ function tickHudIdle(frame, video) {
 export function resetPlayerHudIdle(frame) {
   const model = frame ? hudState.get(frame) : null
   if (model?.idleTimer) clearInterval(model.idleTimer)
+  if (model?.onKey) document.removeEventListener('keydown', model.onKey)
   if (frame) hudState.delete(frame)
+}
+
+function onPlayerKey(frame, video, event) {
+  if (event.target.matches?.('input, textarea, select')) return
+  const action = playerMediaAction(event.key)
+  if (!action) return
+  event.preventDefault()
+  applyPlayerMediaAction(video, action)
+  bumpHud(frame)
 }
 
 function wireIdle(frame, video) {
   const model = stored(frame)
   if (model.idleWired) return
-  stored(frame, { idleWired: true, lastActivity: Date.now() })
+  const onKey = (event) => onPlayerKey(frame, video, event)
+  stored(frame, { idleWired: true, lastActivity: Date.now(), onKey })
   frame.addEventListener('mousemove', () => bumpHud(frame))
   frame.addEventListener('pointerdown', () => bumpHud(frame))
   frame.addEventListener('keydown', () => bumpHud(frame))
+  document.addEventListener('keydown', onKey)
   video.addEventListener('pause', () => bumpHud(frame))
   video.addEventListener('play', () => tickHudIdle(frame, video))
   const timer = setInterval(() => tickHudIdle(frame, video), 400)

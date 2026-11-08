@@ -81,6 +81,8 @@ test('selo ao vivo usa o vermelho da marca', () => {
 test('HUD cinema cobre o quadro e pinta a pílula OpenFlix', () => {
   assert.match(hudOverlayClass(), /absolute/)
   assert.match(hudOverlayClass(), /inset-0/)
+  assert.match(hudOverlayClass(), /pointer-events-auto/)
+  assert.doesNotMatch(hudOverlayClass(), /pointer-events-none/)
   assert.match(hudPauseClass(), /rounded-2xl/)
   assert.match(hudBrandClass(), /tracking-\[0\.16em\]/)
   assert.match(qualityPanelClass(), /bottom-24/)
