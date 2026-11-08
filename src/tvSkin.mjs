@@ -116,6 +116,65 @@ export function ghostClass() {
   return 'inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-row px-4 py-2 font-sans text-[clamp(14px,1vw,16px)] font-bold text-ink md:px-5 md:py-2.5'
 }
 
+export function qualityPanelClass() {
+  return 'absolute right-4 bottom-24 z-20 flex w-72 max-h-[70%] flex-col overflow-hidden rounded-lg bg-panel py-1 ring-1 ring-white/10'
+}
+
+export function hudOverlayClass() {
+  return 'pointer-events-none absolute inset-0 z-[5] flex flex-col justify-between bg-[linear-gradient(to_bottom,rgba(0,0,0,0.86)_0%,rgba(0,0,0,0.18)_26%,transparent_46%,rgba(0,0,0,0.28)_64%,rgba(0,0,0,0.92)_100%)] transition-opacity duration-300'
+}
+
+export function hudTopClass() {
+  return 'pointer-events-auto flex items-start justify-between gap-4 px-6 pt-5'
+}
+
+export function hudTitleClass() {
+  return 'm-0 font-display text-[clamp(26px,3.2vw,48px)] font-black tracking-tight text-white'
+}
+
+export function hudChipClass() {
+  return 'inline-flex items-center rounded border border-white/20 bg-black/45 px-2 py-0.5 font-sans text-[10px] font-bold tracking-[0.08em] text-ink uppercase'
+}
+
+export function hudBrandClass() {
+  return 'inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 font-sans text-[11px] font-bold tracking-[0.16em] text-ink uppercase ring-1 ring-white/10'
+}
+
+export function hudPauseClass() {
+  return 'pointer-events-auto flex h-[4.5rem] w-[4.5rem] cursor-pointer items-center justify-center rounded-2xl border-0 bg-black/55 text-white shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-sm'
+}
+
+export function hudIconBtnClass() {
+  return 'inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-white'
+}
+
+export function hudToolbarClass() {
+  return 'pointer-events-auto flex min-w-0 flex-wrap items-center gap-2'
+}
+
+export function hudClockClass() {
+  return 'font-sans text-[13px] font-bold tracking-wide text-ink tabular-nums'
+}
+
+export function hudNextClass() {
+  return 'inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/65 px-4 py-2 font-sans text-[14px] font-bold text-white ring-1 ring-white/15'
+}
+
+export function qualityListClass() {
+  return 'flex max-h-[60vh] flex-col overflow-y-auto'
+}
+
+export function qualityHeadClass() {
+  return 'flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent px-4 py-3 text-left font-sans text-[clamp(14px,1vw,16px)] font-bold text-ink'
+}
+
+export function qualityItemClass(selected) {
+  const base =
+    'flex w-full cursor-pointer items-center gap-2 border-0 px-4 py-3 text-left font-sans text-[clamp(14px,1vw,16px)] font-bold'
+  if (selected) return `${base} bg-row text-ink`
+  return `${base} bg-transparent text-ink`
+}
+
 export function playlistChipClass(selected) {
   if (selected) {
     return 'cursor-pointer rounded-lg border-0 bg-accent px-4 py-2 font-sans text-[clamp(14px,1vw,16px)] font-bold text-ink'

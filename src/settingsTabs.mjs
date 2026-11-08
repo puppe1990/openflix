@@ -2,6 +2,7 @@ export const SETTINGS_TABS = [
   { id: 'playlists', label: 'Playlists' },
   { id: 'streaming', label: 'Streaming' },
   { id: 'prime', label: 'Prime Video' },
+  { id: 'youtube', label: 'YouTube' },
 ]
 
 export const DEFAULT_SETTINGS_TAB = 'playlists'
@@ -22,7 +23,8 @@ export function settingsPaneHidden(activeId, paneId) {
   return selectSettingsTab(activeId) !== paneId
 }
 
-/** Chips e nome ficam fora da aba Prime Video. */
+/** Chips e nome ficam fora das abas Prime Video e YouTube. */
 export function settingsListsHidden(tabId) {
-  return selectSettingsTab(tabId) === 'prime'
+  const id = selectSettingsTab(tabId)
+  return id === 'prime' || id === 'youtube'
 }

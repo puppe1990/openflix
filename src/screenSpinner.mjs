@@ -6,6 +6,7 @@ const LABELS = {
   'catalog:series': 'Abrindo séries…',
   player: 'Abrindo reprodução…',
   prime: 'Abrindo Prime Video…',
+  youtube: 'Abrindo YouTube…',
   settings: 'Abrindo ajustes…',
   home: 'Abrindo início…',
 }

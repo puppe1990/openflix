@@ -23,6 +23,7 @@
         <button type="button" id="tab-movies" data-catalog="movies">Filmes</button>
         <button type="button" id="tab-series" data-catalog="series">Séries</button>
         <button type="button" id="tab-prime" data-screen="prime">Prime Video</button>
+        <button type="button" id="tab-youtube" data-screen="youtube">YouTube</button>
         <button type="button" id="tab-settings" data-screen="settings">Ajustes</button>
       </nav>
       <div class="relative min-w-[200px] flex-1 md:max-w-[280px]">
@@ -86,7 +87,7 @@
           Ajustes
         </h1>
         <p class="mb-6 max-w-[46ch] text-[16px] text-mute">
-          Playlists, streaming Xtream e Prime Video. Sem MAC, sem VPN.
+          Playlists, streaming Xtream, Prime Video e YouTube. Sem MAC, sem VPN.
         </p>
         <nav id="settingsTabs" class="mb-6 flex flex-wrap gap-2" aria-label="Seções de ajustes">
           <button type="button" id="settings-tab-playlists" data-settings-tab="playlists">
@@ -97,6 +98,9 @@
           </button>
           <button type="button" id="settings-tab-prime" data-settings-tab="prime">
             Prime Video
+          </button>
+          <button type="button" id="settings-tab-youtube" data-settings-tab="youtube">
+            YouTube
           </button>
         </nav>
         <div id="settingsLists">
@@ -256,9 +260,64 @@
             </button>
           </div>
         </div>
+        <div id="settings-pane-youtube" hidden>
+          <h2 class="m-0 mb-2 font-display text-[22px] font-bold tracking-tight">YouTube</h2>
+          <p class="mb-4 max-w-[46ch] text-[14px] text-mute">
+            Entre na janela oficial do YouTube dentro do app: a senha não passa pelo OpenFlix, e a
+            sessão alimenta o catálogo nativo pelo Innertube.
+          </p>
+          <div class="mb-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              id="youtubeSignInBtn"
+              class="cursor-pointer rounded-lg border-0 bg-action px-5 py-3 font-sans text-[16px] font-bold text-void"
+            >
+              Entrar no YouTube
+            </button>
+            <button
+              type="button"
+              id="youtubeSyncBtn"
+              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+            >
+              Usar sessão deste app
+            </button>
+            <button
+              type="button"
+              id="youtubeSignOutBtn"
+              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+            >
+              Sair
+            </button>
+          </div>
+          <label class="mb-3 grid max-w-[46ch] gap-2 text-[13px] text-mute" for="youtubeCookie">
+            Cookie da sessão (opcional, para quem preferir colar)
+            <textarea
+              id="youtubeCookie"
+              rows="3"
+              class="w-full rounded-lg border-0 bg-panel p-3 font-sans text-[13px] text-ink outline-none focus:ring-1 focus:ring-accent"
+            ></textarea>
+          </label>
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              id="youtubeCookieBtn"
+              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+            >
+              Guardar cookie
+            </button>
+            <button
+              type="button"
+              id="youtubeBtn"
+              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+            >
+              Abrir catálogo
+            </button>
+          </div>
+        </div>
       </section>
 
       <section id="prime" class="pt-6" hidden></section>
+      <section id="youtube" class="pt-6" hidden></section>
 
       <p id="error" class="mt-6 min-h-[1.4em] text-[16px] text-warn" role="alert"></p>
     </main>

@@ -18,8 +18,11 @@ export function resetPlayerFullscreen() {
 function syncButtons() {
   const label = fullscreenButtonLabel(active)
   for (const button of document.querySelectorAll('[data-fullscreen]')) {
-    button.textContent = label
+    button.setAttribute('aria-label', label)
     button.setAttribute('aria-pressed', String(active))
+    const text = button.querySelector('.sr-only')
+    if (text) text.textContent = label
+    else button.textContent = label
   }
 }
 

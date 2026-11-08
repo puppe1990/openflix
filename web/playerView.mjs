@@ -1,5 +1,4 @@
-import { minutesBetween } from '../src/epgWindow.mjs'
-import { attachHlsPlayback } from '../src/hlsPlayback.mjs'
+import { attachHlsPlayback, preferNativeHls } from '../src/hlsPlayback.mjs'
 import {
   isPlayingVideo,
   restorePlayerFromPip,
@@ -8,27 +7,33 @@ import {
 import { resolvePlayerSource } from '../src/playerSource.mjs'
 import { watchCardFromItem } from '../src/watchCard.mjs'
 import { redactUrl } from '../src/xtreamUrls.mjs'
-import {
-  actionClass,
-  ghostClass,
-  liveBadgeClass,
-  playerNoteClass,
-  playerTitleClass,
-  playerUrlClass,
-} from '../src/tvSkin.mjs'
-import { epgClock, epgProgress } from '../src/epgProgress.mjs'
+import { goBack } from '../src/tvShell.mjs'
+import { actionClass, ghostClass, playerNoteClass, playerUrlClass } from '../src/tvSkin.mjs'
 import { tauriInvoke, webFetch } from './bridge.mjs'
 import { byId, el } from './dom.mjs'
-import { exitPlayerFullscreen, resetPlayerFullscreen } from './fullscreen.mjs'
+import {
+  exitPlayerFullscreen,
+  resetPlayerFullscreen,
+  togglePlayerFullscreen,
+} from './fullscreen.mjs'
 import { ICON_HEART, iconSvg } from './icons.mjs'
+import { mountPlayerHud, paintPlayerHud, resetPlayerHudIdle } from './playerHud.mjs'
 import { openPrimeVideo } from './primeVideo.mjs'
-import { playUrl, withRotation } from './session.mjs'
+import {
+  emptyQualityState,
+  HLS_QUALITY_AUTO,
+  hydratePlayerQualities,
+  qualityPlaybackUrl,
+  resetQualityState,
+  syncPlayerQuality,
+} from './playerQuality.mjs'
+import { ensureEpg, ensureSeriesUrl, epgBlock } from './playerEpg.mjs'
+import { playUrl } from './session.mjs'
 import { transitionTo } from './screenFlow.mjs'
 import { state } from './state.mjs'
 import { favStore, historyStore, resumeStore } from './stores.mjs'
 
 let hlsEngine = null
-let held = { url: '', video: null, session: null, frame: null, item: null, catalogKind: null }
 let pipWired = false
 
 /** Injeta o engine hls.js (webview Tauri). */
@@ -37,13 +42,96 @@ export function setHlsEngine(Hls) {
 }
 
 function emptyHeld() {
-  return { url: '', video: null, session: null, frame: null, item: null, catalogKind: null }
+  return {
+    url: '',
+    video: null,
+    session: null,
+    frame: null,
+    item: null,
+    catalogKind: null,
+    ...emptyQualityState(),
+  }
+}
+
+let held = emptyHeld()
+
+function hudQualityLabel() {
+  if (!held.qualityId || held.qualityId === HLS_QUALITY_AUTO) return ''
+  return held.qualities.find((row) => row.id === held.qualityId)?.label ?? ''
+}
+
+function paintHud() {
+  if (!held.frame || !held.video) return
+  paintPlayerHud(held.frame, held.video, {
+    item: held.item,
+    catalogKind: held.catalogKind ?? state.shell.catalogKind,
+    qualityLabel: hudQualityLabel(),
+  })
+}
+
+function paintQuality() {
+  syncPlayerQuality(held.frame, {
+    qualities: held.qualities,
+    masterUrl: held.masterUrl,
+    selectedId: held.qualityId,
+    open: held.qualityOpen,
+    onToggle() {
+      held.qualityOpen = !held.qualityOpen
+      paintQuality()
+    },
+    onPick: applyQuality,
+    onClose() {
+      held.qualityOpen = false
+      paintQuality()
+    },
+  })
+  paintHud()
+}
+
+function applyQuality(id) {
+  const picked = qualityPlaybackUrl(held, id)
+  if (!picked || !held.video) return
+  held.qualityId = id
+  held.qualityOpen = false
+  paintQuality()
+  if (picked.url === held.url && held.session) return
+  held.session?.destroy?.()
+  held.session = null
+  held.url = ''
+  const source = resolvePlayerSource(picked.url, {
+    canPlay: (type) => held.video.canPlayType(type),
+  })
+  bindHlsOrProgressive(held.video, picked.url, source)
+  held.session?.seekToLive?.()
+}
+
+/** Fecha o overlay Qualidade; true se consumiu o Escape. */
+export function closePlayerQuality() {
+  if (!held.qualityOpen) return false
+  held.qualityOpen = false
+  paintQuality()
+  return true
+}
+
+function qualityFetch(url) {
+  if (preferNativeHls(url, { inTauri: Boolean(tauriInvoke()) })) {
+    return (href) => globalThis.fetch(href)
+  }
+  return webFetch()
+}
+
+async function hydrateAndPaint(url) {
+  await hydratePlayerQualities(held, url, qualityFetch(url))
+  paintQuality()
 }
 
 /** Solta o <video> preso entre renders. Só testes. */
 export function resetPlayerMedia() {
   held.session?.destroy?.()
+  held.qualityOpen = false
+  paintQuality()
   hidePip()
+  resetPlayerHudIdle(held.frame)
   held = emptyHeld()
   resetPlayerFullscreen()
 }
@@ -57,7 +145,6 @@ function hidePip() {
   if (!host) return
   host.hidden = true
   if (held.frame && held.frame.parentNode === host) host.replaceChildren()
-  if (held.video) held.video.controls = true
 }
 
 function restoreFromPip() {
@@ -174,6 +261,7 @@ function startVideo(video, url) {
 
 function bindHlsOrProgressive(video, url, source) {
   if (held.url === url && held.session) return source
+  const shouldHydrate = source.kind === 'hls' && held.qualities.length === 0
   held.session?.destroy?.()
   held.session = null
   held.url = ''
@@ -181,12 +269,13 @@ function bindHlsOrProgressive(video, url, source) {
     video.src = source.url
     held.session = { kind: 'progressive', destroy() {} }
     startVideo(video, url)
+    paintQuality()
     return source
   }
   held.session = attachHlsPlayback(video, url, {
     Hls: hlsEngine,
     fetch: webFetch(),
-    preferNative: !tauriInvoke(),
+    preferNative: preferNativeHls(url, { inTauri: Boolean(tauriInvoke()) }),
     canPlay: (type) => video.canPlayType(type),
     onFatalError(data) {
       state.errorText = `stream falhou (${data.type ?? 'hls'})`
@@ -195,6 +284,7 @@ function bindHlsOrProgressive(video, url, source) {
     },
   })
   startVideo(video, url)
+  if (shouldHydrate) void hydrateAndPaint(url)
   return source
 }
 
@@ -202,10 +292,16 @@ function playerVideo(url, item) {
   const changed = streamIdOf(item) !== streamIdOf(held.item)
   held.item = item
   held.catalogKind = state.shell.catalogKind
-  if (changed) rememberWatch(item)
+  if (changed) {
+    rememberWatch(item)
+    resetQualityState(held)
+    paintQuality()
+  }
   if (held.video && held.frame) {
-    const nameEl = held.frame.querySelector('[data-player-name]')
-    if (nameEl) nameEl.textContent = item?.name ?? ''
+    paintPlayerHud(held.frame, held.video, {
+      item,
+      catalogKind: state.shell.catalogKind,
+    })
     syncGoLiveButton(held.frame)
     const source = resolvePlayerSource(url, { canPlay: (type) => held.video.canPlayType(type) })
     if (source.kind === 'hls' || source.kind === 'progressive') {
@@ -215,7 +311,7 @@ function playerVideo(url, item) {
   }
   const video = el('video', 'min-h-0 min-w-0 w-full flex-1 bg-black object-contain')
   video.id = 'player-video'
-  video.controls = true
+  video.controls = false
   video.playsInline = true
   video.autoplay = true
   wireVideo(video)
@@ -269,23 +365,20 @@ function syncGoLiveButton(frame) {
 
 function playerFrame(video, item) {
   const frame = el('div', 'relative flex aspect-video flex-col overflow-hidden rounded-lg bg-black')
-  const top = el('div', 'flex shrink-0 items-center gap-2 bg-black/80 px-4 py-3')
-  top.dataset.playerToolbar = '1'
-  if (state.shell.catalogKind === 'live') {
-    top.append(goLiveButton())
-    top.append(el('span', liveBadgeClass(), 'Ao vivo'))
-  }
-  const name = el(
-    'span',
-    'rounded bg-black/60 px-2 py-0.5 font-sans text-[10px] font-bold text-ink',
-    item?.name ?? '',
-  )
-  name.dataset.playerName = '1'
-  top.append(name)
-  top.append(favButton())
-  if (tauriInvoke()) top.append(sidecarButton('ml-auto'), primeVideoButton())
-  else top.append(primeVideoButton('ml-auto'))
-  frame.append(top, video)
+  const kind = state.shell.catalogKind
+  frame.append(video)
+  mountPlayerHud(frame, video, {
+    item,
+    catalogKind: kind,
+    actions: {
+      fav: favButton(),
+      sidecar: tauriInvoke() ? sidecarButton() : null,
+      prime: primeVideoButton(),
+      goLive: kind === 'live' ? goLiveButton() : null,
+    },
+    onBack: () => void transitionTo(goBack(state.shell)),
+    onFullscreen: () => void togglePlayerFullscreen(),
+  })
   return frame
 }
 
@@ -306,82 +399,6 @@ function putPlayerChrome(root, before, frame, after) {
     return
   }
   root.replaceChildren(...before, frame, ...after)
-}
-
-/** Resolve a URL do primeiro episódio da série. */
-export function ensureSeriesUrl(item) {
-  const key = String(item.id)
-  if (state.series.key === key) return
-  state.series = { key, url: '' }
-  withRotation(() => state.client.seriesEpisodes(item.id))
-    .then((episodes) => {
-      const first = episodes[0]
-      state.series = {
-        key,
-        url: first ? state.client.seriesPlayUrl(first.id, first.extension) : '',
-      }
-    })
-    .catch((error) => {
-      state.errorText = error.message
-    })
-    .finally(() => state.redraw())
-}
-
-/** Carrega o EPG curto do canal, uma vez por item. */
-export function ensureEpg(item) {
-  const key = String(item.id)
-  if (state.epg.key === key) return
-  state.epg = { key, listings: [] }
-  withRotation(() => state.client.shortEpg(item.id))
-    .then((listings) => {
-      state.epg = { key, listings }
-    })
-    .catch(() => {})
-    .finally(() => state.redraw())
-}
-
-function openCatchUp(item, listing) {
-  try {
-    const url = state.client.catchUpUrl({
-      streamId: item.id,
-      durationMinutes: minutesBetween(listing.start, listing.stop),
-      start: listing.start,
-    })
-    const video = byId('player').querySelector('video')
-    if (!video) return
-    video.src = url
-    video.play().catch(() => {})
-  } catch (error) {
-    state.errorText = error.message
-    state.redraw()
-  }
-}
-
-/** Lista o EPG com atalho de catch-up quando há archive. */
-export function epgBlock(item) {
-  const list = el('ul', 'mt-3 list-none space-y-2 p-0')
-  for (const listing of state.epg.listings.slice(0, 6)) {
-    const row = el('li', 'rounded-lg bg-well p-3')
-    const head = el('div', 'flex items-center justify-between gap-2')
-    head.append(el('span', 'truncate font-display text-sm font-bold text-ink', listing.title))
-    head.append(
-      el('span', 'shrink-0 font-sans text-[10px] font-bold text-mute', epgClock(listing.start)),
-    )
-    row.append(head)
-    const track = el('div', 'mt-2 h-1 overflow-hidden rounded-full bg-panel')
-    const fill = el('div', 'h-full bg-accent')
-    fill.style.width = `${Math.round(epgProgress(listing) * 100)}%`
-    track.append(fill)
-    row.append(track)
-    if (listing.hasArchive) {
-      const button = el('button', `${ghostClass()} mt-2`, 'Assistir do início')
-      button.type = 'button'
-      button.addEventListener('click', () => openCatchUp(item, listing))
-      row.append(button)
-    }
-    list.append(row)
-  }
-  return list
 }
 
 function openSidecar(url) {
@@ -421,6 +438,8 @@ function primeVideoButton(extraClass = '') {
 function leavePlayerScreen() {
   const root = byId('player')
   const playing = playingNow()
+  held.qualityOpen = false
+  paintQuality()
   void exitPlayerFullscreen()
   if (shouldPictureInPicture({ screen: state.shell.screen, playing })) {
     dockPip()
@@ -444,9 +463,8 @@ export function renderPlayer() {
   root.hidden = false
   const item = state.shell.selectedItem
   const url = playUrl()
-  const title = el('h1', playerTitleClass(), item?.name ?? 'Sem título')
   const note = el('p', playerNoteClass())
-  const before = [title]
+  const before = []
   const after = []
   let frame = null
   if (url) {

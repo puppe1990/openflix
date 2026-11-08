@@ -84,7 +84,7 @@ test('aba Início conserva o catálogo ao vivo já carregado', async () => {
   assert.equal(state.shell.catalog, catalog)
 })
 
-test('Ajustes abre na aba Playlists com Streaming e Prime Video ao lado', async () => {
+test('Ajustes abre na aba Playlists com Streaming, Prime Video e YouTube ao lado', async () => {
   const { SPINNER_MIN_MS } = await import('../src/screenSpinner.mjs')
   await import(`../web/app.js?t=${Date.now()}`)
   await settle()
@@ -93,10 +93,11 @@ test('Ajustes abre na aba Playlists com Streaming e Prime Video ao lado', async 
   const labels = [...document.querySelectorAll('#settingsTabs [data-settings-tab]')].map((tab) =>
     tab.textContent.trim(),
   )
-  assert.deepEqual(labels, ['Playlists', 'Streaming', 'Prime Video'])
+  assert.deepEqual(labels, ['Playlists', 'Streaming', 'Prime Video', 'YouTube'])
   assert.equal(document.getElementById('settings-pane-playlists').hidden, false)
   assert.equal(document.getElementById('settings-pane-streaming').hidden, true)
   assert.equal(document.getElementById('settings-pane-prime').hidden, true)
+  assert.equal(document.getElementById('settings-pane-youtube').hidden, true)
   assert.equal(document.getElementById('settingsLists').hidden, false)
 })
 
@@ -157,4 +158,34 @@ test('aba Prime Video lista destinos do enrichNav e destaca o escolhido', async 
   await settle(SPINNER_MIN_MS + 80)
   const chosen = document.querySelector('#prime [data-prime-dest="merch:mgForYou"]')
   assert.match(chosen.className, /bg-accent/)
+})
+
+test('Ajustes → YouTube oferece login oficial, sessão do app e sair', async () => {
+  const { SPINNER_MIN_MS } = await import('../src/screenSpinner.mjs')
+  await import(`../web/app.js?t=${Date.now()}`)
+  await settle()
+  document.getElementById('tab-settings').click()
+  await settle(SPINNER_MIN_MS + 80)
+  document.getElementById('settings-tab-youtube').click()
+  assert.equal(document.getElementById('settings-pane-youtube').hidden, false)
+  assert.equal(document.getElementById('settingsLists').hidden, true)
+  assert.match(document.getElementById('youtubeSignInBtn').textContent, /Entrar no YouTube/)
+  assert.match(document.getElementById('youtubeSyncBtn').textContent, /sessão/i)
+  assert.match(document.getElementById('youtubeSignOutBtn').textContent, /Sair/i)
+})
+
+test('aba YouTube mostra o trilho chrome mesmo no preview sem Tauri', async () => {
+  const { SPINNER_MIN_MS } = await import('../src/screenSpinner.mjs')
+  await import(`../web/app.js?t=${Date.now()}`)
+  await settle()
+  document.getElementById('tab-youtube').click()
+  await settle(SPINNER_MIN_MS + 80)
+  const root = document.getElementById('youtube')
+  assert.equal(root.hidden, false)
+  const dests = [...document.querySelectorAll('#youtube [data-youtube-dest]')]
+  assert.deepEqual(
+    dests.map((node) => node.dataset.youtubeDest),
+    ['FEwhat_to_watch', 'FEsubscriptions', 'FEhistory', 'FEtrending'],
+  )
+  assert.match(document.getElementById('error').textContent, /youtube recusou/)
 })

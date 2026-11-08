@@ -11,6 +11,7 @@ import { byId } from './dom.mjs'
 import { renderPlayer } from './playerView.mjs'
 import { renderPrime } from './primeView.mjs'
 import { renderSpinner } from './spinnerView.mjs'
+import { renderYoutube } from './youtubeView.mjs'
 import { state } from './state.mjs'
 import { playlistStore } from './stores.mjs'
 
@@ -66,6 +67,7 @@ export function renderAll() {
   renderCatalog()
   renderPlayer()
   renderPrime()
+  renderYoutube()
   renderSettings()
   renderTabs()
   renderSignal()

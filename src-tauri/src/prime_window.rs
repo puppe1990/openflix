@@ -11,7 +11,7 @@ const COOKIE_ACCOUNT: &str = "prime_cookie";
 const COOKIE_DOMAIN: &str = "primevideo.com";
 const PRIME_ORIGIN: &str = "https://www.primevideo.com/";
 // WKWebView manda um UA sem token "Safari"; a loja da Amazon recusa esse UA.
-const SAFARI_UA: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+pub(crate) const SAFARI_UA: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
 const HOSTS: [&str; 2] = ["primevideo.com", "www.primevideo.com"];
 
 /// Só https em primevideo.com: o player oficial roda aí, nada de API/DRM própria.
@@ -128,7 +128,9 @@ mod tests {
 
     #[test]
     fn allowlist_so_primevideo_https() {
-        assert!(allowed_url("https://www.primevideo.com/detail/amzn1.dv.gti.x"));
+        assert!(allowed_url(
+            "https://www.primevideo.com/detail/amzn1.dv.gti.x"
+        ));
         assert!(allowed_url("https://primevideo.com/"));
         assert!(!allowed_url("http://www.primevideo.com/"));
         assert!(!allowed_url("https://www.primevideo.com.exemplo.net/"));

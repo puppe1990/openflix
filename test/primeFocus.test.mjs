@@ -28,3 +28,15 @@ test('Escape no detalhe fecha; seta esquerda no primeiro card volta ao trilho', 
   assert.equal(primeFocusAction(rowsFocus, 'Escape', { hasDetail: true }), 'close-detail')
   assert.equal(primeFocusAction(rowsFocus, 'Enter', { hasDetail: true }), 'play-detail')
 })
+
+test('Escape no painel fecha o player; setas e Enter não mexem o catálogo por baixo', () => {
+  const focus = createPrimeFocus()
+  const next = movePrimeFocus(focus, 'ArrowDown', { destCount: 4, rows, hasPane: true })
+  assert.equal(next.destIndex, 0)
+  assert.equal(primeFocusAction(focus, 'Escape', { hasDetail: false, hasPane: true }), 'close-pane')
+  assert.equal(primeFocusAction(focus, 'Enter', { hasDetail: false, hasPane: true }), null)
+  assert.equal(
+    primeFocusAction(focus, 'Escape', { hasDetail: true, hasPane: true }),
+    'close-detail',
+  )
+})

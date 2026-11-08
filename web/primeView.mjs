@@ -2,9 +2,20 @@ import { movePrimeFocus, primeFocusAction } from '../src/primeFocus.mjs'
 import { primePlayUrl } from '../src/primePlay.mjs'
 import { primeChipClass } from '../src/tvSkin.mjs'
 import { byId, el } from './dom.mjs'
+import {
+  closePrimePane,
+  hidePrimePane,
+  PANE_HOST_ID,
+  playPrimeInPane,
+  syncPrimePane,
+} from './primePane.mjs'
 import { openPrimeDest } from './primeVideo.mjs'
 import { openPrimeBrowser, openPrimePlayer, openPrimeSignIn } from './primeWindow.mjs'
 import { state } from './state.mjs'
+
+function panePlaying() {
+  return Boolean(state.prime.pane?.url)
+}
 
 /** Executa uma janela oficial e publica o erro quando o card não tem destino. */
 async function runPrimeWindow(action) {
@@ -17,8 +28,17 @@ async function runPrimeWindow(action) {
   state.redraw()
 }
 
-function playPrimeCard(card) {
-  return runPrimeWindow(() => openPrimePlayer(primePlayUrl(card)))
+async function playPrimeCard(card) {
+  state.prime.detail = null
+  const url = primePlayUrl(card)
+  try {
+    const opened = await playPrimeInPane(url, card.title)
+    if (!opened) await openPrimePlayer(url)
+    state.errorText = ''
+  } catch (error) {
+    state.errorText = `prime video recusou: ${error.message}`
+  }
+  state.redraw()
 }
 
 function browsePrimeCard(card) {
@@ -181,7 +201,7 @@ function primeHead() {
     el(
       'p',
       'm-0 max-w-[56ch] text-[13px] text-mute',
-      'Catálogo nativo pelos endpoints da loja. O player oficial da Amazon abre na janela do app.',
+      'Catálogo nativo pelos endpoints da loja. O player oficial da Amazon toca no painel desta tela.',
     ),
   )
   const open = el(
@@ -196,13 +216,43 @@ function primeHead() {
   return head
 }
 
+function paneStage() {
+  const wrap = el('div', 'mt-4 flex min-h-[70vh] flex-col gap-3')
+  const bar = el('div', 'flex items-center justify-between gap-4')
+  bar.append(
+    el(
+      'p',
+      'm-0 truncate font-display text-[clamp(18px,1.6vw,26px)] font-bold',
+      state.prime.pane.title || 'Prime Video',
+    ),
+  )
+  const close = el(
+    'button',
+    'cursor-pointer rounded-lg border-0 bg-row px-4 py-2 font-bold text-ink',
+    'Fechar player',
+  )
+  close.type = 'button'
+  close.id = 'primePaneClose'
+  close.addEventListener('click', () => void closePrimePane())
+  bar.append(close)
+  const host = el('div', 'min-h-[180px] min-w-[320px] w-full flex-1 bg-well')
+  host.id = PANE_HOST_ID
+  wrap.append(bar, host)
+  return wrap
+}
+
 /** Trata setas/Enter/Escape na tela Prime. Devolve true se consumiu. */
 export function handlePrimeKey(key) {
   const hasDetail = Boolean(state.prime.detail)
-  const action = primeFocusAction(state.prime.focus, key, { hasDetail })
+  const hasPane = panePlaying()
+  const action = primeFocusAction(state.prime.focus, key, { hasDetail, hasPane })
   if (action === 'close-detail') {
     state.prime.detail = null
     state.redraw()
+    return true
+  }
+  if (action === 'close-pane') {
+    void closePrimePane()
     return true
   }
   if (action === 'play-detail') {
@@ -226,6 +276,7 @@ export function handlePrimeKey(key) {
     destCount: state.prime.dests.length,
     rows: state.prime.rows,
     hasDetail,
+    hasPane,
   })
   if (next === state.prime.focus) return false
   state.prime.focus = next
@@ -240,7 +291,15 @@ export function renderPrime() {
   const visible = state.shell.screen === 'prime'
   document.body.classList.toggle('overflow-hidden', visible)
   root.hidden = !visible
-  if (!visible) return
+  if (!visible) {
+    void hidePrimePane()
+    return
+  }
+  if (panePlaying()) {
+    root.replaceChildren(paneStage())
+    void syncPrimePane()
+    return
+  }
   const stage = el('div', 'mt-4 flex min-h-[70vh] gap-6')
   const rows = el('div', 'grid min-w-0 flex-1 gap-8 overflow-y-auto')
   if (state.prime.rows.length === 0) {
@@ -255,4 +314,5 @@ export function renderPrime() {
   const overlay = detailOverlay()
   if (overlay) children.push(overlay)
   root.replaceChildren(...children)
+  void syncPrimePane()
 }

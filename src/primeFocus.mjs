@@ -32,19 +32,24 @@ function moveRows(focus, key, destCount, rows) {
   return focus
 }
 
-/** Move o foco; detalhe aberto ignora setas. */
-export function movePrimeFocus(focus, key, { destCount, rows, hasDetail = false }) {
-  if (hasDetail) return focus
+/** Move o foco; detalhe ou painel aberto ignora setas. */
+export function movePrimeFocus(
+  focus,
+  key,
+  { destCount, rows, hasDetail = false, hasPane = false },
+) {
+  if (hasDetail || hasPane) return focus
   if (focus.zone === 'rail') return moveRail(focus, key, destCount, rows)
   if (focus.zone === 'rows') return moveRows(focus, key, destCount, rows)
   return focus
 }
 
 /** Ação de Enter/Escape a partir do foco; no detalhe Enter manda assistir. */
-export function primeFocusAction(focus, key, { hasDetail }) {
+export function primeFocusAction(focus, key, { hasDetail, hasPane = false }) {
   if (hasDetail && (key === 'Escape' || key === 'Backspace')) return 'close-detail'
   if (hasDetail && key === 'Enter') return 'play-detail'
-  if (key !== 'Enter') return null
+  if (hasPane && (key === 'Escape' || key === 'Backspace')) return 'close-pane'
+  if (hasPane || key !== 'Enter') return null
   if (focus.zone === 'rail') return 'open-dest'
   if (focus.zone === 'rows') return 'open-detail'
   return null

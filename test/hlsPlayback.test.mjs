@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { beforeEach, test } from 'node:test'
 import { JSDOM } from 'jsdom'
 import { faker } from './factories.mjs'
-import { attachHlsPlayback } from '../src/hlsPlayback.mjs'
+import { attachHlsPlayback, preferNativeHls } from '../src/hlsPlayback.mjs'
 
 const HLS_TYPE = 'application/vnd.apple.mpegurl'
 const loads = []
@@ -153,4 +153,27 @@ test('destroy da sessão hls.js chama destroy do engine', () => {
   })
   session.destroy()
   assert.equal(hls[0].destroyed, true)
+})
+
+test('no Tauri o HLS remoto fica no hls.js e o loopback vai nativo', () => {
+  const remote = liveUrl()
+  const port = faker.internet.port()
+  const loopback = `http://127.0.0.1:${port}/video/${faker.string.alphanumeric(11)}.m3u8`
+  assert.equal(preferNativeHls(remote, { inTauri: true }), false)
+  assert.equal(preferNativeHls(loopback, { inTauri: true }), true)
+  assert.equal(preferNativeHls(remote, { inTauri: false }), true)
+})
+
+test('loopback no Tauri com canPlay usa o src do video', () => {
+  const video = document.createElement('video')
+  const url = `http://127.0.0.1:${faker.internet.port()}/video/${faker.string.alphanumeric(11)}.m3u8`
+  const session = attachHlsPlayback(video, url, {
+    Hls: FakeHls,
+    fetch: async () => {},
+    preferNative: preferNativeHls(url, { inTauri: true }),
+    canPlay: (type) => (type === HLS_TYPE ? 'maybe' : ''),
+  })
+  assert.equal(session.kind, 'native')
+  assert.equal(video.src, url)
+  assert.equal(loads.length, 0)
 })

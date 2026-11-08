@@ -3,6 +3,26 @@ import { seekToLiveEdge } from './liveEdge.mjs'
 
 const HLS_TYPE = 'application/vnd.apple.mpegurl'
 
+function isLoopbackHttp(url) {
+  try {
+    const parsed = new URL(url)
+    return (
+      parsed.protocol === 'http:' &&
+      (parsed.hostname === '127.0.0.1' ||
+        parsed.hostname === 'localhost' ||
+        parsed.hostname === '::1')
+    )
+  } catch {
+    return false
+  }
+}
+
+/** Preview HTTP e proxy YouTube em 127.0.0.1 usam HLS nativo; portal XC remoto fica no hls.js. */
+export function preferNativeHls(url, { inTauri = false } = {}) {
+  if (!inTauri) return true
+  return isLoopbackHttp(url)
+}
+
 function playNative(video, url) {
   video.src = url
   return {
@@ -61,7 +81,7 @@ function playHlsJs(video, url, Hls, fetchFn, onFatalError) {
 }
 
 /**
- * Liga o HLS no <video>: nativo quando o webview busca HTTP, hls.js+fetch no Tauri.
+ * Liga o HLS no <video>: nativo no preview HTTP e no loopback; hls.js+fetch no XC remoto.
  */
 export function attachHlsPlayback(
   video,

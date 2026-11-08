@@ -16,14 +16,14 @@ beforeEach(() => {
   faker.seed(20261108)
 })
 
-test('Ajustes tem Playlists, Streaming e Prime Video nessa ordem', () => {
+test('Ajustes tem Playlists, Streaming, Prime Video e YouTube nessa ordem', () => {
   assert.deepEqual(
     SETTINGS_TABS.map((tab) => tab.id),
-    ['playlists', 'streaming', 'prime'],
+    ['playlists', 'streaming', 'prime', 'youtube'],
   )
   assert.deepEqual(
     SETTINGS_TABS.map((tab) => tab.label),
-    ['Playlists', 'Streaming', 'Prime Video'],
+    ['Playlists', 'Streaming', 'Prime Video', 'YouTube'],
   )
 })
 
@@ -31,12 +31,12 @@ test('aba inicial de Ajustes é Playlists', () => {
   assert.equal(DEFAULT_SETTINGS_TAB, 'playlists')
 })
 
-test('selectSettingsTab aceita as três abas e recusa o resto', () => {
-  const picked = faker.helpers.arrayElement(['playlists', 'streaming', 'prime'])
+test('selectSettingsTab aceita as quatro abas e recusa o resto', () => {
+  const picked = faker.helpers.arrayElement(['playlists', 'streaming', 'prime', 'youtube'])
   assert.equal(selectSettingsTab(picked), picked)
   const unknown = faker.word.noun()
   assert.throws(() => selectSettingsTab(unknown), {
-    message: `aba de ajustes recusada: recebido ${unknown}, esperado playlists, streaming ou prime`,
+    message: `aba de ajustes recusada: recebido ${unknown}, esperado playlists, streaming, prime ou youtube`,
   })
 })
 
@@ -47,8 +47,9 @@ test('painel some quando a aba ativa é outra', () => {
   assert.equal(settingsPaneHidden('prime', 'prime'), false)
 })
 
-test('chips e nome somem só na aba Prime Video', () => {
+test('chips e nome somem nas abas Prime Video e YouTube', () => {
   assert.equal(settingsListsHidden('playlists'), false)
   assert.equal(settingsListsHidden('streaming'), false)
   assert.equal(settingsListsHidden('prime'), true)
+  assert.equal(settingsListsHidden('youtube'), true)
 })

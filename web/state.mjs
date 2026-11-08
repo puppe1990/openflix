@@ -3,6 +3,8 @@ import { createPrimeFocus } from '../src/primeFocus.mjs'
 import { PRIME_CHROME_DESTS, PRIME_HOME_DEST } from '../src/primeNav.mjs'
 import { DEFAULT_SETTINGS_TAB } from '../src/settingsTabs.mjs'
 import { createTvShell } from '../src/tvShell.mjs'
+import { createYoutubeFocus } from '../src/youtubeFocus.mjs'
+import { YOUTUBE_CHROME_DESTS, YOUTUBE_HOME_DEST } from '../src/youtubeNav.mjs'
 
 /** Estado vazio da aba Prime Video (catálogo nativo). */
 export function emptyPrime() {
@@ -13,6 +15,18 @@ export function emptyPrime() {
     detail: null,
     focus: createPrimeFocus(),
     guest: true,
+    pane: { url: null, title: '' },
+  }
+}
+
+/** Estado vazio da aba YouTube (catálogo Innertube). */
+export function emptyYoutube() {
+  return {
+    dests: [...YOUTUBE_CHROME_DESTS],
+    destKey: YOUTUBE_HOME_DEST.key,
+    rows: [],
+    detail: null,
+    focus: createYoutubeFocus(),
   }
 }
 
@@ -30,6 +44,7 @@ export const state = {
   itemLimit: CHANNEL_CARD_PAGE,
   spinner: { busy: false, label: '', startedAt: 0 },
   prime: emptyPrime(),
+  youtube: emptyYoutube(),
   settingsTab: DEFAULT_SETTINGS_TAB,
   redraw: () => {},
 }

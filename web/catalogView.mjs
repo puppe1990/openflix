@@ -44,6 +44,7 @@ const TAB_SCREENS = {
   'tab-movies': 'movies',
   'tab-series': 'series',
   'tab-prime': 'prime',
+  'tab-youtube': 'youtube',
   'tab-settings': 'settings',
 }
 

@@ -19,13 +19,24 @@ npm run tauri:app   # package target-app/OpenFlix.app (release + ad-hoc codesign
 
 Repo: https://github.com/puppe1990/openflix
 
+## Download
+
+Binaries for macOS (Apple Silicon and Intel), Windows, and Linux are on
+[GitHub Releases](https://github.com/puppe1990/openflix/releases). A push of a
+`v*` tag runs `.github/workflows/release.yml` (Tauri bundle). Local macOS ad-hoc
+build stays `npm run tauri:app` → `target-app/OpenFlix.app`.
+
 Reverse-engineering notes for the reference APK (protocol, obfuscation, endpoints):
 [docs/reverse-engineering.md](docs/reverse-engineering.md).
 
 Map of the official Prime Video web endpoints (storefront, PRS/PES, DRM, CDN), captured
 from a logged-in session: [docs/prime-video-endpoints.md](docs/prime-video-endpoints.md).
 
-10-foot home: **Live / Movies / Series / Settings**. Arrows and Enter. Local demo, no network.
+Innertube YouTube (WEB catalog + ANDROID `/player` itag 18, Range proxy):
+[docs/youtube-innertube-endpoints.md](docs/youtube-innertube-endpoints.md). Personal
+session via the in-app YouTube login window; not a third-party catalog.
+
+10-foot home: **Live / Movies / Series / Settings**. Arrows and Enter. Local demo, no network. YouTube and Prime Video are native tabs in the Tauri app.
 
 On the Tauri app, playlists, favorites, and resume live in `life-tv.sqlite` (0600) in the app data directory. Xtream passwords stay in the `secrets.json` vault.
 

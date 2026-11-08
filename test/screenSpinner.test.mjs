@@ -18,6 +18,7 @@ test('spinnerLabel descreve cada tela do 10-foot', () => {
   assert.equal(spinnerLabel('catalog', 'series'), 'Abrindo séries…')
   assert.equal(spinnerLabel('player'), 'Abrindo reprodução…')
   assert.equal(spinnerLabel('prime'), 'Abrindo Prime Video…')
+  assert.equal(spinnerLabel('youtube'), 'Abrindo YouTube…')
   assert.equal(spinnerLabel('settings'), 'Abrindo ajustes…')
   assert.equal(spinnerLabel('home'), 'Abrindo início…')
 })

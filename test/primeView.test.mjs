@@ -15,7 +15,32 @@ globalThis.window = dom.window
 const { parseEnrichNav } = await import('../src/primeNav.mjs')
 const { parseLanding } = await import('../src/primeLanding.mjs')
 const { emptyPrime, state } = await import('../web/state.mjs')
-const { renderPrime } = await import('../web/primeView.mjs')
+const { handlePrimeKey, renderPrime } = await import('../web/primeView.mjs')
+const { PANE_HOST_ID } = await import('../web/primePane.mjs')
+
+function tick() {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+function stubPaneHostRect({ left = 40, top = 80, width = 1200, height = 675 } = {}) {
+  Object.defineProperty(globalThis, 'innerWidth', { configurable: true, value: 1600 })
+  Object.defineProperty(globalThis, 'innerHeight', { configurable: true, value: 900 })
+  globalThis.window.HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+    if (this.id === PANE_HOST_ID) {
+      return {
+        x: left,
+        y: top,
+        left,
+        top,
+        width,
+        height,
+        right: left + width,
+        bottom: top + height,
+      }
+    }
+    return { x: 0, y: 0, left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 }
+  }
+}
 
 beforeEach(() => {
   faker.seed(20261107)
@@ -73,7 +98,23 @@ test('aba Prime tem entrada para a janela oficial no cabeçalho', () => {
   assert.match(document.getElementById('primeOpenBtn').textContent, /Abrir Prime Video/)
 })
 
-test('Assistir dispara prime_open_player com o href oficial do card', async () => {
+test('emptyPrime começa sem painel e o palco só aparece com título tocando', () => {
+  assert.deepEqual(emptyPrime().pane, { url: null, title: '' })
+  renderPrime()
+  assert.equal(document.getElementById(PANE_HOST_ID), null)
+  state.prime.pane = {
+    url: 'https://www.primevideo.com/detail/amzn1.dv.gti.x',
+    title: 'Breakdown',
+  }
+  renderPrime()
+  assert.ok(document.getElementById(PANE_HOST_ID))
+  assert.match(document.getElementById('primePaneClose').textContent, /Fechar/)
+  assert.match(document.getElementById('prime').textContent, /Breakdown/)
+  assert.equal(document.querySelector('[data-prime-card]'), null)
+})
+
+test('Assistir dispara prime_pane_open sobre o palco da UI', async () => {
+  stubPaneHostRect()
   const calls = []
   globalThis.__TAURI__ = {
     core: {
@@ -86,13 +127,68 @@ test('Assistir dispara prime_open_player com o href oficial do card', async () =
     renderPrime()
     document.querySelector('[data-prime-card]').click()
     document.getElementById('primeDetailPlay').click()
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await tick()
   } finally {
     delete globalThis.__TAURI__
   }
-  assert.equal(calls.length, 1)
-  assert.equal(calls[0].command, 'prime_open_player')
-  assert.match(calls[0].args.url, /^https:\/\/www\.primevideo\.com\/-\/pt\/detail\//)
+  const opened = calls.find((call) => call.command === 'prime_pane_open')
+  assert.ok(opened)
+  assert.match(opened.args.url, /^https:\/\/www\.primevideo\.com\/-\/pt\/detail\//)
+  assert.equal(opened.args.x, 40)
+  assert.equal(opened.args.y, 80)
+  assert.equal(opened.args.width, 1200)
+  assert.equal(opened.args.height, 675)
+  assert.ok(document.getElementById(PANE_HOST_ID))
+  assert.equal(document.getElementById('primeDetail'), null)
+})
+
+test('Fechar player e Escape fecham o palco; sair da aba só esconde', async () => {
+  stubPaneHostRect()
+  const calls = []
+  globalThis.__TAURI__ = {
+    core: {
+      invoke: async (command, args) => {
+        calls.push({ command, args })
+      },
+    },
+  }
+  try {
+    state.prime.pane = {
+      url: 'https://www.primevideo.com/detail/amzn1.dv.gti.x',
+      title: 'Breakdown',
+    }
+    renderPrime()
+    calls.length = 0
+    document.getElementById('primePaneClose').click()
+    await tick()
+    assert.ok(calls.some((call) => call.command === 'prime_pane_close'))
+    assert.equal(document.getElementById(PANE_HOST_ID), null)
+    assert.equal(state.prime.pane.url, null)
+
+    state.prime.pane = {
+      url: 'https://www.primevideo.com/detail/amzn1.dv.gti.x',
+      title: 'Breakdown',
+    }
+    renderPrime()
+    calls.length = 0
+    assert.equal(handlePrimeKey('Escape'), true)
+    await tick()
+    assert.ok(calls.some((call) => call.command === 'prime_pane_close'))
+    assert.equal(state.prime.pane.url, null)
+
+    state.prime.pane = {
+      url: 'https://www.primevideo.com/detail/amzn1.dv.gti.x',
+      title: 'Breakdown',
+    }
+    state.shell = { ...createTvShell(), screen: 'home' }
+    calls.length = 0
+    renderPrime()
+    await tick()
+    assert.ok(calls.some((call) => call.command === 'prime_pane_hide'))
+    assert.equal(state.prime.pane.url, 'https://www.primevideo.com/detail/amzn1.dv.gti.x')
+  } finally {
+    delete globalThis.__TAURI__
+  }
 })
 
 test('tela Prime fica oculta fora da aba', () => {

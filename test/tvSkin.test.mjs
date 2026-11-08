@@ -12,6 +12,9 @@ import {
   catItemClass,
   catListClass,
   ghostClass,
+  hudBrandClass,
+  hudOverlayClass,
+  hudPauseClass,
   itemClass,
   itemListClass,
   itemsPaneClass,
@@ -19,6 +22,7 @@ import {
   playerNoteClass,
   playerTitleClass,
   playerUrlClass,
+  qualityPanelClass,
   tabClass,
   tileClass,
 } from '../src/tvSkin.mjs'
@@ -72,6 +76,14 @@ test('chip da playlist ativa usa o vermelho', () => {
 
 test('selo ao vivo usa o vermelho da marca', () => {
   assert.match(liveBadgeClass(), /bg-accent/)
+})
+
+test('HUD cinema cobre o quadro e pinta a pílula OpenFlix', () => {
+  assert.match(hudOverlayClass(), /absolute/)
+  assert.match(hudOverlayClass(), /inset-0/)
+  assert.match(hudPauseClass(), /rounded-2xl/)
+  assert.match(hudBrandClass(), /tracking-\[0\.16em\]/)
+  assert.match(qualityPanelClass(), /bottom-24/)
 })
 
 test('player usa URL em cinza e título Chivo', () => {

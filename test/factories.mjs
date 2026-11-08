@@ -247,3 +247,155 @@ export function fakerPrimeLanding(overrides = {}) {
     pagination: overrides.pagination ?? {},
   }
 }
+
+/** videoId Innertube: 11 caracteres [A-Za-z0-9_-]. */
+export function fakerYoutubeVideoId() {
+  return faker.string.alphanumeric({ length: 11 })
+}
+
+function fakerYoutubeRuns(text) {
+  return { runs: [{ text }] }
+}
+
+function fakerYoutubeThumb(url) {
+  return {
+    thumbnails: [
+      { url: `${url}=s90`, width: 90, height: 68 },
+      { url, width: 480, height: 360 },
+    ],
+  }
+}
+
+/** Card clássico videoRenderer da home/busca WEB. */
+export function fakerYoutubeVideoRenderer(overrides = {}) {
+  const title = overrides.title ?? faker.music.songName()
+  const videoId = overrides.videoId ?? fakerYoutubeVideoId()
+  const coverUrl = overrides.coverUrl ?? faker.image.url()
+  return {
+    videoId,
+    title: fakerYoutubeRuns(title),
+    lengthText: { simpleText: overrides.length ?? '12:34' },
+    ownerText: fakerYoutubeRuns(overrides.channel ?? faker.person.fullName()),
+    shortViewCountText: { simpleText: overrides.views ?? '1,2 mi de visualizações' },
+    thumbnail: fakerYoutubeThumb(coverUrl),
+  }
+}
+
+/** Card lockupViewModel da home WEB 2026. */
+export function fakerYoutubeLockup(overrides = {}) {
+  const title = overrides.title ?? faker.music.songName()
+  const videoId = overrides.videoId ?? fakerYoutubeVideoId()
+  const coverUrl = overrides.coverUrl ?? faker.image.url()
+  return {
+    contentId: videoId,
+    contentType: 'LOCKUP_CONTENT_TYPE_VIDEO',
+    metadata: {
+      lockupMetadataViewModel: {
+        title: { content: title },
+      },
+    },
+    contentImage: {
+      thumbnailViewModel: {
+        image: { sources: [{ url: coverUrl }] },
+      },
+    },
+  }
+}
+
+/** Browse FEwhat_to_watch: grade + prateleira. */
+export function fakerYoutubeBrowse(overrides = {}) {
+  const grid = overrides.grid ?? [fakerYoutubeVideoRenderer()]
+  const shelfTitle = overrides.shelfTitle ?? faker.commerce.department()
+  const shelf = overrides.shelf ?? [fakerYoutubeLockup()]
+  return {
+    contents: {
+      twoColumnBrowseResultsRenderer: {
+        tabs: [
+          {
+            tabRenderer: {
+              content: {
+                richGridRenderer: {
+                  contents: [
+                    ...grid.map((renderer) => ({
+                      richItemRenderer: { content: { videoRenderer: renderer } },
+                    })),
+                    {
+                      richSectionRenderer: {
+                        content: {
+                          richShelfRenderer: {
+                            title: fakerYoutubeRuns(shelfTitle),
+                            contents: shelf.map((lockup) => ({
+                              richItemRenderer: { content: { lockupViewModel: lockup } },
+                            })),
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    },
+  }
+}
+
+/** Busca WEB: itemSection com videoRenderer. */
+export function fakerYoutubeSearch(overrides = {}) {
+  const videos = overrides.videos ?? [fakerYoutubeVideoRenderer(), fakerYoutubeVideoRenderer()]
+  return {
+    contents: {
+      twoColumnSearchResultsRenderer: {
+        primaryContents: {
+          sectionListRenderer: {
+            contents: [
+              {
+                itemSectionRenderer: {
+                  contents: videos.map((renderer) => ({ videoRenderer: renderer })),
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  }
+}
+
+/** /player ANDROID com itag 18 muxed (ftypmp42). */
+export function fakerYoutubePlayer(overrides = {}) {
+  const videoId = overrides.videoId ?? fakerYoutubeVideoId()
+  const title = overrides.title ?? faker.music.songName()
+  const googlevideo =
+    overrides.googlevideo ??
+    `https://rr${faker.number.int({ min: 1, max: 5 })}---sn-host.googlevideo.com/videoplayback?id=${videoId}&itag=18`
+  const status = overrides.status ?? 'OK'
+  return {
+    playabilityStatus: {
+      status,
+      reason: overrides.reason ?? '',
+    },
+    videoDetails: { videoId, title, author: overrides.channel ?? faker.person.fullName() },
+    streamingData: {
+      hlsManifestUrl: overrides.hlsManifestUrl ?? '',
+      formats: [
+        {
+          itag: 18,
+          mimeType: 'video/mp4; codecs="avc1.42001E, mp4a.40.2"',
+          qualityLabel: '360p',
+          url: overrides.url === undefined ? googlevideo : overrides.url,
+        },
+        {
+          itag: 22,
+          mimeType: 'video/mp4; codecs="avc1.64001F, mp4a.40.2"',
+          qualityLabel: '720p',
+          url: '',
+          signatureCipher: 's=AA&url=https://example.net/cipher',
+        },
+      ],
+      adaptiveFormats: [],
+    },
+  }
+}

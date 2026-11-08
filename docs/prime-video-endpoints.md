@@ -660,7 +660,7 @@ clonar o DRM da Amazon, o que está fora do escopo deste projeto (e dos termos d
 
 ## 10. Como o OpenFlix usa isso hoje
 
-Catálogo nativo 10-foot (sem webview, sem `#primeStage`):
+Catálogo nativo 10-foot (sem `#primeStage`; o player oficial entra num webview filho `#primePaneHost`):
 
 - `src/primeApi.mjs` + `src-tauri/src/prime_api.rs`: allowlist `GET /api/enrichNav` e
   `POST /api/getLandingPage`. No Tauri o comando `prime_request` faz o HTTP com reqwest
@@ -673,8 +673,12 @@ Catálogo nativo 10-foot (sem webview, sem `#primeStage`):
   `desktopOSX` / `web-decoration-gti-v4` / `web-features-v6` / `web-explore-v48` e
   `GetLandingPageOutput` → fileiras de cards (`titleId`, capa, ano, sinopse, `href`).
 - `web/primeView.mjs`: trilho à esquerda, fileiras à direita, overlay de ficha,
-  `Assistir no app` / `Abrir no navegador`. D-pad em `src/primeFocus.mjs` (Enter no
-  detalhe = assistir).
+  `Assistir no app` (painel embutido) / `Abrir no navegador`. D-pad em
+  `src/primeFocus.mjs` (Enter no detalhe = assistir; Escape no palco fecha o player).
+- `web/primePane.mjs` + `src-tauri/src/prime_pane.rs`: webview filho `prime-pane` sobre
+  `#primePaneHost` (feature `unstable` do Tauri 2). A página da Amazon resolve o DRM;
+  o OpenFlix só posiciona o retângulo. Capability `webviews: ["main"]` — a página da
+  Amazon não invoca `secret_set`/`db_set`.
 - Cookie opcional em Ajustes (`web/primeSession.mjs`, conta `prime_cookie`). Sem cookie
   o BFF ainda devolve a loja de convidado (home / Feito para você / Esportes
   `pageType=home&pageId=Sports`). Eventos usam `liveInfo.timeBadge`; ligas sem

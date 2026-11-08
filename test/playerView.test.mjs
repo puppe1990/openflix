@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { beforeEach, test } from 'node:test'
+import { afterEach, beforeEach, test } from 'node:test'
 import { JSDOM } from 'jsdom'
 import { faker } from './factories.mjs'
 import { createTvShell } from '../src/tvShell.mjs'
@@ -40,8 +40,10 @@ stubVideo()
 const { state } = await import('../web/state.mjs')
 const { renderPlayer, resetPlayerMedia, setHlsEngine } = await import('../web/playerView.mjs')
 const { togglePlayerFullscreen } = await import('../web/fullscreen.mjs')
+const { hidePlayerHudIfIdle } = await import('../web/playerHud.mjs')
 const { favStore, historyStore } = await import('../web/stores.mjs')
 const { PRIME_SCREEN_EVENT } = await import('../web/primeVideo.mjs')
+const originalFetch = globalThis.fetch
 
 beforeEach(() => {
   faker.seed(61)
@@ -58,6 +60,12 @@ beforeEach(() => {
   delete globalThis.__TAURI__
   historyStore.clear()
   favStore.clear()
+  globalThis.fetch = async () => ({ ok: false, status: 599, text: async () => '' })
+})
+
+afterEach(() => {
+  resetPlayerMedia()
+  globalThis.fetch = originalFetch
 })
 
 function liveUrl() {
@@ -74,6 +82,70 @@ function openFla(url = liveUrl()) {
   }
   return url
 }
+
+test('player esconde os controles nativos e pinta o HUD cinema', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const hud = document.querySelector('#player-frame [data-player-hud]')
+  const brand = document.querySelector('[data-player-brand]')
+  assert.equal(video.controls, false)
+  assert.ok(hud)
+  assert.ok(document.querySelector('[data-player-pause]'))
+  assert.ok(document.querySelector('[data-player-progress]'))
+  assert.ok(document.querySelector('[data-player-clock]'))
+  assert.equal(brand.textContent.trim(), 'OPENFLIX CINEMA')
+  assert.equal(hud.textContent.includes('STREAMFLIX'), false)
+  assert.equal(document.querySelector('[data-skip-intro]').hidden, true)
+  assert.equal(document.querySelector('[data-next-episode]').hidden, true)
+})
+
+test('player de filme mostra pulo de 10s e velocidade', () => {
+  const url = `http://${faker.internet.domainName()}/movie/user/pass/9.mp4`
+  state.client = { moviePlayUrl: () => url }
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: 'movies',
+    selectedItem: { id: 9, name: faker.lorem.words(2), extension: 'mp4' },
+  }
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  Object.defineProperty(video, 'duration', { configurable: true, get: () => 3260 })
+  video.currentTime = 1725
+  video.dispatchEvent(new dom.window.Event('timeupdate'))
+  assert.ok(document.querySelector('[data-player-skip="-10"]'))
+  assert.ok(document.querySelector('[data-player-skip="10"]'))
+  assert.match(document.querySelector('[data-player-rate]').textContent, /1\.0x/)
+  assert.match(document.querySelector('[data-player-clock]').textContent, /28:45 \/ 54:20/)
+})
+
+test('pulo de 10s avança o currentTime do filme', () => {
+  const url = `http://${faker.internet.domainName()}/movie/user/pass/9.mp4`
+  state.client = { moviePlayUrl: () => url }
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: 'movies',
+    selectedItem: { id: 9, name: faker.lorem.words(2), extension: 'mp4' },
+  }
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  Object.defineProperty(video, 'duration', { configurable: true, get: () => 3260 })
+  video.currentTime = 1725
+  video.dispatchEvent(new dom.window.Event('loadedmetadata'))
+  document.querySelector('[data-player-skip="10"]').click()
+  assert.equal(video.currentTime, 1735)
+})
+
+test('pause do HUD pausa o vídeo', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  assert.equal(video.paused, false)
+  document.querySelector('[data-player-pause]').click()
+  assert.equal(video.paused, true)
+})
 
 test('player HLS liga autoplay e dispara play', () => {
   const url = openFla()
@@ -121,10 +193,29 @@ test('AbortError do play não mostra player recusou', async () => {
   assert.equal(state.errorText, '')
 })
 
-test('player não mostra botão Tela cheia', () => {
+test('HUD cinema some no idle e volta pausado ou no mouse', () => {
   openFla()
   renderPlayer()
-  assert.equal(document.querySelector('[data-fullscreen]'), null)
+  const frame = document.querySelector('#player-frame')
+  const video = document.querySelector('#player video')
+  const overlay = document.querySelector('[data-player-hud]')
+  assert.equal(video.paused, false)
+  assert.equal(overlay.hasAttribute('data-hud-idle'), false)
+  assert.equal(hidePlayerHudIfIdle(frame, video, { idleMs: 2800 }), true)
+  assert.equal(overlay.hasAttribute('data-hud-idle'), true)
+  assert.equal(hidePlayerHudIfIdle(frame, video, { idleMs: 9000, paused: true }), false)
+  assert.equal(overlay.hasAttribute('data-hud-idle'), false)
+  hidePlayerHudIfIdle(frame, video, { idleMs: 9000 })
+  frame.dispatchEvent(new dom.window.Event('mousemove'))
+  assert.equal(overlay.hasAttribute('data-hud-idle'), false)
+})
+
+test('player mostra botão Tela cheia no HUD', () => {
+  openFla()
+  renderPlayer()
+  const button = document.querySelector('#player-frame [data-fullscreen]')
+  assert.ok(button)
+  assert.match(button.textContent, /Tela cheia/)
 })
 
 test('player não duplica Favoritar nem Abrir no player abaixo do vídeo', () => {
@@ -143,7 +234,6 @@ test('no Tauri o quadro tem Abrir no player no topo', () => {
   const button = document.querySelector('#player-frame [data-sidecar]')
   assert.ok(button)
   assert.match(button.textContent, /Abrir no player/)
-  assert.equal(button.className.includes('ml-auto'), true)
 })
 
 test('player tem atalho Prime Video que leva para a aba Prime', () => {
@@ -257,6 +347,36 @@ test('no Tauri o HLS vai pelo hls.js e não coloca o http no src', () => {
   assert.match(document.querySelector('#player').textContent, /fetch do shell/)
 })
 
+test('no Tauri o HLS do loopback YouTube usa o player nativo', () => {
+  const videoId = faker.string.alphanumeric(11)
+  const url = `http://127.0.0.1:${faker.internet.port()}/video/${videoId}.m3u8`
+  const loads = []
+  class FakeHls {
+    static isSupported() {
+      return true
+    }
+    loadSource(href) {
+      loads.push(href)
+    }
+    attachMedia() {}
+    destroy() {}
+  }
+  globalThis.__TAURI__ = { core: { invoke: async () => {} } }
+  setHlsEngine(FakeHls)
+  state.client = { livePlayUrl: () => `http://${faker.internet.domainName()}/live/x.m3u8` }
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: 'movies',
+    selectedItem: { id: videoId, name: faker.lorem.words(3), url },
+  }
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  assert.equal(loads.length, 0)
+  assert.equal(video.src, url)
+  assert.match(document.querySelector('#player').textContent, /HLS nativo/)
+})
+
 function leavePlayer(screen = 'home') {
   state.shell = { ...state.shell, screen }
   renderPlayer()
@@ -362,14 +482,12 @@ test('dar play em outro item fecha o PiP e troca o stream', () => {
   assert.equal(plays.at(-1), otherUrl)
 })
 
-test('player ao vivo tem Ir ao vivo como primeiro controle da barra', () => {
+test('player ao vivo tem Ir ao vivo no HUD', () => {
   openFla()
   renderPlayer()
-  const toolbar = document.querySelector('[data-player-toolbar]')
-  const button = toolbar.querySelector('[data-go-live]')
+  const button = document.querySelector('#player-frame [data-go-live]')
   assert.ok(button)
   assert.match(button.textContent, /Ir ao vivo/)
-  assert.equal(toolbar.firstElementChild, button)
 })
 
 test('player de filme não mostra Ir ao vivo', () => {
@@ -416,4 +534,159 @@ test('sair em tela cheia tocando sai do teatro e deixa o PiP', async () => {
   assert.equal(document.body.classList.contains('is-fullscreen'), false)
   assert.equal(document.getElementById('pip').hidden, false)
   assert.ok(document.querySelector('#pip video'))
+})
+
+function youtubeHlsFixture() {
+  const videoId = faker.string.alphanumeric(11)
+  const port = faker.internet.port()
+  const master = `http://127.0.0.1:${port}/video/${videoId}.m3u8`
+  const levels = {
+    hd: `http://127.0.0.1:${port}/ytg?u=${faker.string.alphanumeric(8)}`,
+    hd720: `http://127.0.0.1:${port}/ytg?u=${faker.string.alphanumeric(8)}`,
+    p480: `http://127.0.0.1:${port}/ytg?u=${faker.string.alphanumeric(8)}`,
+    p360: `http://127.0.0.1:${port}/ytg?u=${faker.string.alphanumeric(8)}`,
+    p240: `http://127.0.0.1:${port}/ytg?u=${faker.string.alphanumeric(8)}`,
+    p144: `http://127.0.0.1:${port}/ytg?u=${faker.string.alphanumeric(8)}`,
+  }
+  const body = [
+    '#EXTM3U',
+    '#EXT-X-INDEPENDENT-SEGMENTS',
+    '#EXT-X-STREAM-INF:BANDWIDTH=5552610,RESOLUTION=1920x1080,FRAME-RATE=60',
+    levels.hd,
+    '#EXT-X-STREAM-INF:BANDWIDTH=2892080,RESOLUTION=1280x720,FRAME-RATE=60',
+    levels.hd720,
+    '#EXT-X-STREAM-INF:BANDWIDTH=1391960,RESOLUTION=854x480,FRAME-RATE=30',
+    levels.p480,
+    '#EXT-X-STREAM-INF:BANDWIDTH=962461,RESOLUTION=640x360,FRAME-RATE=30',
+    levels.p360,
+    '#EXT-X-STREAM-INF:BANDWIDTH=480000,RESOLUTION=426x240,FRAME-RATE=30',
+    levels.p240,
+    '#EXT-X-STREAM-INF:BANDWIDTH=269034,RESOLUTION=256x144,FRAME-RATE=30',
+    levels.p144,
+  ].join('\n')
+  return { videoId, master, levels, body }
+}
+
+function openYoutubeHls(url) {
+  const videoId = faker.string.alphanumeric(11)
+  globalThis.__TAURI__ = { core: { invoke: async () => {} } }
+  state.client = { livePlayUrl: () => `http://${faker.internet.domainName()}/live/x.m3u8` }
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: 'movies',
+    selectedItem: { id: videoId, name: faker.lorem.words(3), url },
+  }
+  return videoId
+}
+
+function stubMasterFetch(master, body) {
+  globalThis.fetch = async (requested) => {
+    if (String(requested) === master) {
+      return { ok: true, status: 200, text: async () => body }
+    }
+    return { ok: false, status: 404, text: async () => '' }
+  }
+}
+
+async function whenQualityButton() {
+  for (let i = 0; i < 40; i += 1) {
+    const button = document.querySelector('[data-quality]')
+    if (button) return button
+    await Promise.resolve()
+  }
+  return document.querySelector('[data-quality]')
+}
+
+test('HLS do YouTube com vários STREAM-INF mostra Qualidade', async () => {
+  const { master, body } = youtubeHlsFixture()
+  stubMasterFetch(master, body)
+  openYoutubeHls(master)
+  renderPlayer()
+  const button = await whenQualityButton()
+  assert.ok(button)
+  assert.match(button.textContent, /Qualidade/)
+})
+
+test('painel Qualidade lista os níveis do YouTube e Automático', async () => {
+  const { master, body } = youtubeHlsFixture()
+  stubMasterFetch(master, body)
+  openYoutubeHls(master)
+  renderPlayer()
+  const button = await whenQualityButton()
+  button.click()
+  const panel = document.querySelector('[data-quality-panel]')
+  assert.ok(panel)
+  const labels = [...panel.querySelectorAll('[data-quality-option]')].map((node) =>
+    node.textContent.replace('✓', '').trim(),
+  )
+  assert.deepEqual(labels, ['1080p60 HD', '720p60', '480p', '360p', '240p', '144p', 'Automático'])
+})
+
+test('escolher 1080p60 HD troca o src do vídeo para o variant', async () => {
+  const { master, body, levels } = youtubeHlsFixture()
+  stubMasterFetch(master, body)
+  openYoutubeHls(master)
+  renderPlayer()
+  const button = await whenQualityButton()
+  button.click()
+  document.querySelector('[data-quality-option="1080p60"]').click()
+  const video = document.querySelector('#player video')
+  assert.equal(video.src, levels.hd)
+  assert.equal(document.querySelector('[data-quality-panel]'), null)
+})
+
+test('Automático restaura o master HLS', async () => {
+  const { master, body, levels } = youtubeHlsFixture()
+  stubMasterFetch(master, body)
+  openYoutubeHls(master)
+  renderPlayer()
+  const button = await whenQualityButton()
+  button.click()
+  document.querySelector('[data-quality-option="1080p60"]').click()
+  assert.equal(document.querySelector('#player video').src, levels.hd)
+  document.querySelector('[data-quality]').click()
+  document.querySelector('[data-quality-option="auto"]').click()
+  assert.equal(document.querySelector('#player video').src, master)
+})
+
+test('Qualidade no loopback usa o fetch da página se o HTTP do Tauri falha', async () => {
+  const { master, body } = youtubeHlsFixture()
+  stubMasterFetch(master, body)
+  openYoutubeHls(master)
+  globalThis.__TAURI__.http = {
+    fetch: async () => ({ ok: false, status: 599, text: async () => '' }),
+  }
+  renderPlayer()
+  const button = await whenQualityButton()
+  assert.ok(button)
+  assert.match(button.textContent, /Qualidade/)
+})
+
+test('filme progressivo não mostra Qualidade', () => {
+  const url = `http://${faker.internet.domainName()}/movie/user/pass/9.mp4`
+  state.client = { moviePlayUrl: () => url }
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: 'movies',
+    selectedItem: { id: 9, name: faker.lorem.words(2), extension: 'mp4' },
+  }
+  renderPlayer()
+  assert.equal(document.querySelector('[data-quality]'), null)
+})
+
+test('closePlayerQuality fecha o painel e devolve true', async () => {
+  const { master, body } = youtubeHlsFixture()
+  stubMasterFetch(master, body)
+  openYoutubeHls(master)
+  renderPlayer()
+  const button = await whenQualityButton()
+  button.click()
+  assert.ok(document.querySelector('[data-quality-panel]'))
+  const { closePlayerQuality } = await import('../web/playerView.mjs')
+  assert.equal(typeof closePlayerQuality, 'function')
+  assert.equal(closePlayerQuality(), true)
+  assert.equal(document.querySelector('[data-quality-panel]'), null)
+  assert.equal(closePlayerQuality(), false)
 })

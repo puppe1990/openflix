@@ -79,48 +79,6 @@
     display: none !important;
   }
 
-  body.is-fullscreen header,
-  body.is-fullscreen #home,
-  body.is-fullscreen #catalog,
-  body.is-fullscreen #settings,
-  body.is-fullscreen #error {
-    display: none !important;
-  }
-
-  body.is-fullscreen main {
-    padding: 0;
-  }
-
-  body.is-fullscreen #player {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    padding: 0;
-  }
-
-  body.is-fullscreen #player > :not(#player-frame) {
-    display: none;
-  }
-
-  body.is-fullscreen #player-frame {
-    display: flex;
-    width: 100%;
-    max-width: 100%;
-    height: 100vh;
-    min-width: 0;
-    flex-direction: column;
-    aspect-ratio: auto;
-    border-radius: 0;
-  }
-
-  body.is-fullscreen #player-video {
-    width: 100%;
-    min-width: 0;
-    min-height: 0;
-    flex: 1;
-    height: auto;
-  }
-
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -139,8 +97,78 @@
   border-radius: 0.5rem;
 }
 
-#pip [data-player-toolbar] {
+#pip [data-player-toolbar],
+#pip [data-player-hud] {
   display: none !important;
+}
+
+#player:not([hidden]) #player-frame {
+  width: 100%;
+  max-height: calc(100vh - 5.5rem);
+}
+
+/* teatro: fora do @layer pra ganhar do `block` da URL e da max-height do quadro */
+body.is-fullscreen header,
+body.is-fullscreen #home,
+body.is-fullscreen #catalog,
+body.is-fullscreen #settings,
+body.is-fullscreen #error {
+  display: none !important;
+}
+
+body.is-fullscreen main {
+  padding: 0;
+}
+
+body.is-fullscreen #player {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  padding: 0;
+  overflow: hidden;
+}
+
+body.is-fullscreen #player > :not(#player-frame) {
+  display: none !important;
+}
+
+body.is-fullscreen #player:not([hidden]) #player-frame,
+body.is-fullscreen #player-frame {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  height: 100vh;
+  min-width: 0;
+  flex-direction: column;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+body.is-fullscreen #player-video {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  height: 100%;
+}
+
+body.is-fullscreen #player-frame:has([data-hud-idle]) {
+  cursor: none;
+}
+
+[data-player-hud][data-hud-idle] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+[data-player-progress] {
+  min-height: 4px;
+}
+
+[data-player-progress]:hover,
+[data-player-progress]:focus-visible {
+  min-height: 6px;
 }
 
 #pip video {

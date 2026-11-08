@@ -1,6 +1,6 @@
 [package]
 name = "life-tv"
-version = "0.1.0"
+version = "0.2.0"
 description = "Player 10-foot de playlists próprias Xtream/M3U"
 edition = "2021"
 
@@ -8,8 +8,11 @@ edition = "2021"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# `unstable` liga o multiwebview: Window::add_child coloca o painel do Prime
+# como webview filho da janela principal, sem virar uma janela do SO à parte.
+tauri = { version = "2", features = ["unstable"] }
 tauri-plugin-http = "2.8.3"
-reqwest = { version = "0.12", default-features = false, features = ["gzip", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["gzip", "json", "blocking", "rustls-tls"] }
 serde_json = "1"
+sha1 = "0.10"
 rusqlite = { version = "0.32", features = ["bundled"] }
