@@ -5,7 +5,7 @@
   "identifier": "com.life-tv.app",
   "build": {
     "frontendDist": "../.tauri-dist/web",
-    "beforeBuildCommand": "npm --prefix .. run tauri:dist"
+    "beforeBuildCommand": "npm run tauri:dist"
   },
   "app": {
     "withGlobalTauri": true,

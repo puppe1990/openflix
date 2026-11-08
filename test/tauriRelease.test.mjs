@@ -27,7 +27,7 @@ test('bundle Tauri gera instaladores e o frontend dist', async () => {
   ]) {
     assert.ok(tauri.bundle.icon.includes(icon), `ícone ausente: ${icon}`)
   }
-  assert.match(tauri.build.beforeBuildCommand, /tauri:dist/)
+  assert.equal(tauri.build.beforeBuildCommand, 'npm run tauri:dist')
 })
 
 test('Info.plist do bundle libera HTTP e loopback', async () => {
@@ -63,6 +63,8 @@ test('release.yml empacota Mac, Windows e Linux na tag', async () => {
   assert.match(yml, /windows-latest/)
   assert.match(yml, /ubuntu-22\.04/)
   assert.match(yml, /tauri-apps\/tauri-action/)
+  assert.match(yml, /npm run tauri:dist/)
+  assert.match(yml, /includeUpdaterJson: false/)
   assert.match(yml, /aarch64-apple-darwin/)
   assert.match(yml, /x86_64-apple-darwin/)
 })
