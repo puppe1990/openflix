@@ -47,6 +47,15 @@ test('make-icons.sh gera PNG, icns e ico das três plataformas', async () => {
   assert.match(script, /icon\.ico/)
 })
 
+test('CI cargo cria o frontendDist antes de generate_context', async () => {
+  const yml = await readRepo('.github/workflows/ci.yml')
+  const cargoAt = yml.indexOf('cargo test --manifest-path src-tauri/Cargo.toml --bins')
+  const stubAt = yml.indexOf('.tauri-dist/web')
+  assert.notEqual(stubAt, -1)
+  assert.notEqual(cargoAt, -1)
+  assert.ok(stubAt < cargoAt, 'mkdir do dist precisa vir antes do cargo test')
+})
+
 test('release.yml empacota Mac, Windows e Linux na tag', async () => {
   const yml = await readRepo('.github/workflows/release.yml')
   assert.match(yml, /tags:\s*\n\s*-\s*'v\*'/m)
