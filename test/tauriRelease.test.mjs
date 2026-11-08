@@ -56,6 +56,21 @@ test('CI cargo cria o frontendDist antes de generate_context', async () => {
   assert.ok(stubAt < cargoAt, 'mkdir do dist precisa vir antes do cargo test')
 })
 
+test('secrets.json 0600 só no Unix para o bundle Windows', async () => {
+  const rust = await readRepo('src-tauri/src/secrets.rs')
+  assert.doesNotMatch(rust, /^use std::os::unix/m)
+  assert.match(rust, /#\[cfg\(unix\)]/)
+  assert.match(rust, /OpenOptionsExt/)
+  assert.match(rust, /\.mode\(0o600\)/)
+})
+
+test('sqlite 0600 não deixa path ocioso no Windows', async () => {
+  const rust = await readRepo('src-tauri/src/db.rs')
+  const protect = rust.slice(rust.indexOf('fn protect_file'), rust.indexOf('fn open('))
+  assert.match(protect, /#\[cfg\(unix\)]/)
+  assert.match(protect, /#\[cfg\(not\(unix\)\)]/)
+})
+
 test('release.yml empacota Mac, Windows e Linux na tag', async () => {
   const yml = await readRepo('.github/workflows/release.yml')
   assert.match(yml, /tags:\s*\n\s*-\s*'v\*'/m)

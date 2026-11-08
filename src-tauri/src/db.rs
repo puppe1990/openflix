@@ -38,6 +38,8 @@ fn protect_file(path: &Path) -> Result<(), String> {
         std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
             .map_err(sqlite_err)?;
     }
+    #[cfg(not(unix))]
+    let _ = path;
     Ok(())
 }
 

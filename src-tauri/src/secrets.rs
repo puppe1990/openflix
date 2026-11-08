@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 use std::io::Write;
-use std::os::unix::fs::OpenOptionsExt;
 
 use crate::app_paths::data_file;
 
@@ -24,11 +23,14 @@ fn write_map(app: &tauri::AppHandle, secrets: &BTreeMap<String, String>) -> Resu
     }
     let body = serde_json::to_string_pretty(secrets)
         .map_err(|error| format!("secret recusado: {error}"))?;
-    let mut file = std::fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .mode(0o600)
+    let mut opts = std::fs::OpenOptions::new();
+    opts.create(true).write(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    let mut file = opts
         .open(&path)
         .map_err(|error| format!("secret recusado: {error}"))?;
     file.write_all(body.as_bytes())
