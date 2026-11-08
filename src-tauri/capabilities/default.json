@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Janela principal: fetch nativo para portais Xtream (sem CORS)",
-  "windows": ["main"],
+  "description": "Webview da UI do OpenFlix: fetch nativo para portais Xtream (sem CORS). Por webview, não por janela — o painel prime-pane carrega primevideo.com e não pode invocar nada.",
+  "webviews": ["main"],
   "permissions": [
     "core:default",
     "core:window:allow-set-fullscreen",

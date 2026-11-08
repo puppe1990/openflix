@@ -150,3 +150,252 @@ export function fakerM3uPlaylist(items) {
     .join('\n')
   return `#EXTM3U\n${body}\n`
 }
+
+export function fakerPrimeNavNode(overrides = {}) {
+  const swiftPageType = overrides.swiftPageType ?? 'genre'
+  const swiftPageId = overrides.swiftPageId ?? `av_genre_${faker.word.noun()}`
+  const slug = swiftPageId.replace(/^av_genre_/, '')
+  return {
+    __type: 'atv.wps#NavigationSubNode',
+    id: overrides.id ?? `V2=${faker.string.alphanumeric(48)}`,
+    label: overrides.label ?? faker.commerce.department(),
+    refMarker: overrides.refMarker ?? `hm_fin_c_${faker.string.alphanumeric(8)}`,
+    swiftPageId,
+    swiftPageType,
+    url: overrides.url ?? `/genre/${slug}?jic=8%7CEgNhbGw%3D`,
+  }
+}
+
+export function fakerPrimeNav(overrides = {}) {
+  return {
+    __type: 'atv.wps#EnrichNavOutput',
+    categories: [],
+    categoryGroups: overrides.categoryGroups ?? [
+      {
+        id: `V2=${faker.string.alphanumeric(24)}`,
+        label: 'Gêneros',
+        subNodes: [
+          fakerPrimeNavNode({
+            label: 'Ação e aventura',
+            swiftPageType: 'genre',
+            swiftPageId: 'av_genre_action',
+            url: '/genre/action?jic=8%7CEgNhbGw%3D',
+          }),
+        ],
+      },
+      {
+        id: `V2=${faker.string.alphanumeric(24)}`,
+        label: 'Coleções em destaque',
+        subNodes: [
+          fakerPrimeNavNode({
+            label: 'Feito para você',
+            swiftPageType: 'merch',
+            swiftPageId: 'mgForYou',
+            url: '/collection/mgForYou?jic=8%7CEgNhbGw%3D',
+          }),
+          fakerPrimeNavNode({
+            label: 'Loja',
+            swiftPageType: 'home',
+            swiftPageId: 'store',
+            url: '/store?jic=8%7CEgNhbGw%3D',
+          }),
+        ],
+      },
+    ],
+    channels: [],
+    metadata: {},
+  }
+}
+
+export function fakerPrimeEntity(overrides = {}) {
+  const title = overrides.title ?? faker.music.songName()
+  const titleID = overrides.titleID ?? `amzn1.dv.gti.${faker.string.uuid()}`
+  const detailId = faker.string.alphanumeric(20).toUpperCase()
+  return {
+    displayTitle: title,
+    title,
+    titleID,
+    entityType: overrides.entityType ?? 'Movie',
+    releaseYear: overrides.releaseYear ?? String(faker.number.int({ min: 1990, max: 2026 })),
+    runtime:
+      overrides.runtime ??
+      `${faker.number.int({ min: 1, max: 2 })} h ${faker.number.int({ min: 1, max: 59 })} min`,
+    synopsis: overrides.synopsis ?? faker.lorem.sentence(),
+    images: { cover: { url: overrides.coverUrl ?? faker.image.url() } },
+    link: { url: overrides.href ?? `/-/pt/detail/${detailId}` },
+    maturityRatingBadge: { displayText: overrides.badge ?? '14' },
+    entitlementCues: {
+      focusMessage: { message: overrides.entitlement ?? 'Incluído no Prime' },
+      highValueMessage: { message: overrides.highValue ?? '' },
+    },
+  }
+}
+
+export function fakerPrimeLanding(overrides = {}) {
+  return {
+    __type: 'atv.wps#GetLandingPageOutput',
+    hasFailed: overrides.hasFailed ?? false,
+    containers: overrides.containers ?? [
+      {
+        containerType: 'StandardCarousel',
+        title: overrides.rowTitle ?? faker.commerce.department(),
+        isContinueWatching: false,
+        entities: [fakerPrimeEntity(), fakerPrimeEntity()],
+      },
+    ],
+    pageMetadata: { title: overrides.pageTitle ?? 'Prime Video' },
+    pagination: overrides.pagination ?? {},
+  }
+}
+
+/** videoId Innertube: 11 caracteres [A-Za-z0-9_-]. */
+export function fakerYoutubeVideoId() {
+  return faker.string.alphanumeric({ length: 11 })
+}
+
+function fakerYoutubeRuns(text) {
+  return { runs: [{ text }] }
+}
+
+function fakerYoutubeThumb(url) {
+  return {
+    thumbnails: [
+      { url: `${url}=s90`, width: 90, height: 68 },
+      { url, width: 480, height: 360 },
+    ],
+  }
+}
+
+/** Card clássico videoRenderer da home/busca WEB. */
+export function fakerYoutubeVideoRenderer(overrides = {}) {
+  const title = overrides.title ?? faker.music.songName()
+  const videoId = overrides.videoId ?? fakerYoutubeVideoId()
+  const coverUrl = overrides.coverUrl ?? faker.image.url()
+  return {
+    videoId,
+    title: fakerYoutubeRuns(title),
+    lengthText: { simpleText: overrides.length ?? '12:34' },
+    ownerText: fakerYoutubeRuns(overrides.channel ?? faker.person.fullName()),
+    shortViewCountText: { simpleText: overrides.views ?? '1,2 mi de visualizações' },
+    thumbnail: fakerYoutubeThumb(coverUrl),
+  }
+}
+
+/** Card lockupViewModel da home WEB 2026. */
+export function fakerYoutubeLockup(overrides = {}) {
+  const title = overrides.title ?? faker.music.songName()
+  const videoId = overrides.videoId ?? fakerYoutubeVideoId()
+  const coverUrl = overrides.coverUrl ?? faker.image.url()
+  return {
+    contentId: videoId,
+    contentType: 'LOCKUP_CONTENT_TYPE_VIDEO',
+    metadata: {
+      lockupMetadataViewModel: {
+        title: { content: title },
+      },
+    },
+    contentImage: {
+      thumbnailViewModel: {
+        image: { sources: [{ url: coverUrl }] },
+      },
+    },
+  }
+}
+
+/** Browse FEwhat_to_watch: grade + prateleira. */
+export function fakerYoutubeBrowse(overrides = {}) {
+  const grid = overrides.grid ?? [fakerYoutubeVideoRenderer()]
+  const shelfTitle = overrides.shelfTitle ?? faker.commerce.department()
+  const shelf = overrides.shelf ?? [fakerYoutubeLockup()]
+  return {
+    contents: {
+      twoColumnBrowseResultsRenderer: {
+        tabs: [
+          {
+            tabRenderer: {
+              content: {
+                richGridRenderer: {
+                  contents: [
+                    ...grid.map((renderer) => ({
+                      richItemRenderer: { content: { videoRenderer: renderer } },
+                    })),
+                    {
+                      richSectionRenderer: {
+                        content: {
+                          richShelfRenderer: {
+                            title: fakerYoutubeRuns(shelfTitle),
+                            contents: shelf.map((lockup) => ({
+                              richItemRenderer: { content: { lockupViewModel: lockup } },
+                            })),
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    },
+  }
+}
+
+/** Busca WEB: itemSection com videoRenderer. */
+export function fakerYoutubeSearch(overrides = {}) {
+  const videos = overrides.videos ?? [fakerYoutubeVideoRenderer(), fakerYoutubeVideoRenderer()]
+  return {
+    contents: {
+      twoColumnSearchResultsRenderer: {
+        primaryContents: {
+          sectionListRenderer: {
+            contents: [
+              {
+                itemSectionRenderer: {
+                  contents: videos.map((renderer) => ({ videoRenderer: renderer })),
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  }
+}
+
+/** /player ANDROID com itag 18 muxed (ftypmp42). */
+export function fakerYoutubePlayer(overrides = {}) {
+  const videoId = overrides.videoId ?? fakerYoutubeVideoId()
+  const title = overrides.title ?? faker.music.songName()
+  const googlevideo =
+    overrides.googlevideo ??
+    `https://rr${faker.number.int({ min: 1, max: 5 })}---sn-host.googlevideo.com/videoplayback?id=${videoId}&itag=18`
+  const status = overrides.status ?? 'OK'
+  return {
+    playabilityStatus: {
+      status,
+      reason: overrides.reason ?? '',
+    },
+    videoDetails: { videoId, title, author: overrides.channel ?? faker.person.fullName() },
+    streamingData: {
+      hlsManifestUrl: overrides.hlsManifestUrl ?? '',
+      formats: [
+        {
+          itag: 18,
+          mimeType: 'video/mp4; codecs="avc1.42001E, mp4a.40.2"',
+          qualityLabel: '360p',
+          url: overrides.url === undefined ? googlevideo : overrides.url,
+        },
+        {
+          itag: 22,
+          mimeType: 'video/mp4; codecs="avc1.64001F, mp4a.40.2"',
+          qualityLabel: '720p',
+          url: '',
+          signatureCipher: 's=AA&url=https://example.net/cipher',
+        },
+      ],
+      adaptiveFormats: [],
+    },
+  }
+}

@@ -9,6 +9,10 @@ SET="$ICONS/icon.iconset"
 [ -f "$SOURCE" ] || { echo "fonte ausente: $SOURCE"; exit 1; }
 
 sips -z 512 512 "$SOURCE" --out "$ICONS/icon.png" >/dev/null
+sips -z 32 32 "$SOURCE" --out "$ICONS/32x32.png" >/dev/null
+sips -z 128 128 "$SOURCE" --out "$ICONS/128x128.png" >/dev/null
+sips -z 256 256 "$SOURCE" --out "$ICONS/128x128@2x.png" >/dev/null
+convert "$SOURCE" -define icon:auto-resize=256,128,64,48,32,16 "$ICONS/icon.ico"
 
 rm -rf "$SET"
 mkdir "$SET"

@@ -6,6 +6,12 @@ export function tauriInvoke() {
   return typeof invoke === 'function' ? invoke : null
 }
 
+/** Listener de eventos do shell (`youtube-session`). */
+export function tauriListen() {
+  const listen = globalThis.__TAURI__?.event?.listen
+  return typeof listen === 'function' ? listen : null
+}
+
 /** Retorna o fetch nativo do Tauri (sem CORS) ou null. */
 export function tauriFetch() {
   const http = globalThis.__TAURI__?.http

@@ -1,8 +1,17 @@
-import { playlistChipClass } from '../src/tvSkin.mjs'
+import {
+  DEFAULT_SETTINGS_TAB,
+  SETTINGS_TABS,
+  settingsListsHidden,
+  settingsPaneHidden,
+} from '../src/settingsTabs.mjs'
+import { playlistChipClass, primeChipClass } from '../src/tvSkin.mjs'
 import { BRAND } from './config.mjs'
 import { renderCatalog, renderHome, renderTabs } from './catalogView.mjs'
 import { byId } from './dom.mjs'
 import { renderPlayer } from './playerView.mjs'
+import { renderPrime } from './primeView.mjs'
+import { renderSpinner } from './spinnerView.mjs'
+import { renderYoutube } from './youtubeView.mjs'
 import { state } from './state.mjs'
 import { playlistStore } from './stores.mjs'
 
@@ -34,9 +43,22 @@ function renderSavedPlaylists() {
   }
 }
 
+function renderSettingsTabs() {
+  const active = state.settingsTab || DEFAULT_SETTINGS_TAB
+  const lists = byId('settingsLists')
+  if (lists) lists.hidden = settingsListsHidden(active)
+  for (const tab of SETTINGS_TABS) {
+    const button = byId(`settings-tab-${tab.id}`)
+    if (button) button.className = primeChipClass(active === tab.id)
+    const pane = byId(`settings-pane-${tab.id}`)
+    if (pane) pane.hidden = settingsPaneHidden(active, tab.id)
+  }
+}
+
 function renderSettings() {
   byId('settings').hidden = state.shell.screen !== 'settings'
   renderSavedPlaylists()
+  renderSettingsTabs()
 }
 
 /** Redesenha todas as seções visíveis a partir do estado. */
@@ -44,8 +66,11 @@ export function renderAll() {
   renderHome()
   renderCatalog()
   renderPlayer()
+  renderPrime()
+  renderYoutube()
   renderSettings()
   renderTabs()
   renderSignal()
+  renderSpinner()
   byId('error').textContent = state.errorText
 }

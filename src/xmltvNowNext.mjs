@@ -13,6 +13,7 @@ export function parseXmltvStamp(value) {
 }
 
 function withWindow(item) {
+  if (Number.isFinite(item.from) && Number.isFinite(item.to)) return item
   return {
     ...item,
     from: parseXmltvStamp(item.start),
@@ -20,10 +21,29 @@ function withWindow(item) {
   }
 }
 
+/** Agrupa o xmltv por canal e converte as janelas uma vez. */
+export function indexProgramsByChannel(programs) {
+  const index = new Map()
+  for (const item of programs ?? []) {
+    const row = withWindow(item)
+    if (!row.channelId) continue
+    const bucket = index.get(row.channelId)
+    if (bucket) bucket.push(row)
+    else index.set(row.channelId, [row])
+  }
+  return index
+}
+
+function rowsForChannel(programs, channelId) {
+  if (programs instanceof Map) return programs.get(channelId) ?? []
+  if (!Array.isArray(programs)) return []
+  return programs.map(withWindow).filter((item) => item.channelId === channelId)
+}
+
 /** Programa no ar (e o título do seguinte) para um epg_channel_id. */
 export function nowAndNext(programs, { channelId, now = Date.now() }) {
-  if (!channelId || !Array.isArray(programs)) return null
-  const rows = programs.map(withWindow).filter((item) => item.channelId === channelId)
+  if (!channelId) return null
+  const rows = rowsForChannel(programs, channelId)
   const current = rows.find((item) => item.from <= now && now < item.to)
   if (!current) return null
   const upcoming = rows.find((item) => item.from >= current.to)

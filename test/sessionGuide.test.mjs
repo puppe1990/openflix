@@ -38,4 +38,5 @@ test('xmltv da listagem baixa uma vez por playlist', async () => {
   assert.equal(calls, 1)
   assert.equal(state.guide.programs, programs)
   assert.equal(state.guide.key, state.playlistId)
+  assert.equal(state.guide.byChannel.get(programs[0].channelId).length, 1)
 })

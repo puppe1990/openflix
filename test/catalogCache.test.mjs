@@ -56,3 +56,16 @@ test('playlist diferente não lê o catálogo da outra', () => {
     null,
   )
 })
+
+test('fonte xc não lê o cache m3u da mesma playlist', () => {
+  const bucket = memoryBucket()
+  const catalog = liveCatalog()
+  const playlistId = faker.string.alphanumeric(8)
+  const now = Date.now()
+  writeCatalogCache(bucket, { playlistId, kind: 'live', source: 'm3u', catalog, now })
+  assert.equal(readFreshCatalog(bucket, { playlistId, kind: 'live', source: 'xc', now }), null)
+  assert.deepEqual(
+    readFreshCatalog(bucket, { playlistId, kind: 'live', source: 'm3u', now }),
+    catalog,
+  )
+})

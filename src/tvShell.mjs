@@ -45,6 +45,9 @@ export function moveHome(shell, dir) {
 export function openHomeTile(shell) {
   const tile = tileAt(shell.homeIndex)
   if (tile.id === 'settings') return { ...shell, screen: 'settings' }
+  if (shell.catalogKind === tile.id && shell.catalog) {
+    return { ...shell, screen: 'catalog' }
+  }
   return {
     ...shell,
     screen: 'catalog',
@@ -57,10 +60,7 @@ export function openHomeTile(shell) {
 }
 
 export function bindCatalog(shell, catalog) {
-  const next =
-    catalog.kind === 'live'
-      ? { ...catalog, categories: withAllCategory(catalog.categories) }
-      : catalog
+  const next = { ...catalog, categories: withAllCategory(catalog.categories) }
   const items = next.categories[0]?.items ?? []
   return {
     ...shell,

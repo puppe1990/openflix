@@ -5,18 +5,24 @@ import {
   playlistChipClass,
   catalogDetailClass,
   catalogGridClass,
+  catalogListsClass,
   itemCardClass,
   favToggleClass,
   catCountClass,
   catItemClass,
   catListClass,
   ghostClass,
+  hudBrandClass,
+  hudOverlayClass,
+  hudPauseClass,
   itemClass,
   itemListClass,
+  itemsPaneClass,
   liveBadgeClass,
   playerNoteClass,
   playerTitleClass,
   playerUrlClass,
+  qualityPanelClass,
   tabClass,
   tileClass,
 } from '../src/tvSkin.mjs'
@@ -72,6 +78,14 @@ test('selo ao vivo usa o vermelho da marca', () => {
   assert.match(liveBadgeClass(), /bg-accent/)
 })
 
+test('HUD cinema cobre o quadro e pinta a pílula OpenFlix', () => {
+  assert.match(hudOverlayClass(), /absolute/)
+  assert.match(hudOverlayClass(), /inset-0/)
+  assert.match(hudPauseClass(), /rounded-2xl/)
+  assert.match(hudBrandClass(), /tracking-\[0\.16em\]/)
+  assert.match(qualityPanelClass(), /bottom-24/)
+})
+
 test('player usa URL em cinza e título Chivo', () => {
   assert.match(playerUrlClass(), /text-mute/)
   assert.match(playerTitleClass(), /font-display/)
@@ -107,7 +121,14 @@ test('grade ao vivo é duas colunas: categorias | canais', () => {
   const cls = catalogGridClass('live')
   assert.match(cls, /grid-cols-\[18rem/)
   assert.equal(catalogDetailClass('live').includes('hidden'), true)
-  assert.equal(catalogGridClass('movies').includes('xl:grid-cols-12'), true)
+  assert.equal(catalogGridClass('live').includes('xl:grid-cols-12'), false)
+})
+
+test('grade ao vivo trava a altura da linha para a sidebar não esticar', () => {
+  const cls = catalogGridClass('live')
+  assert.match(cls, /grid-rows-\[minmax\(0,1fr\)\]/)
+  assert.match(cls, /overflow-hidden/)
+  assert.match(cls, /min-h-0/)
 })
 
 test('botão de favorito na listagem muda de cinza pra vermelho', () => {
@@ -127,4 +148,20 @@ test('canais ao vivo em cards usam faixa com largura explícita', () => {
   assert.equal(cls.includes('grid-cols-3'), false)
   assert.match(itemCardClass(true), /w-\[calc/)
   assert.match(itemCardClass(true), /ring-accent/)
+})
+
+test('filmes e séries usam a grade de listagem do ao vivo', () => {
+  for (const kind of ['movies', 'series']) {
+    const grid = catalogGridClass(kind)
+    assert.match(grid, /grid-cols-\[18rem/)
+    assert.match(grid, /grid-rows-\[minmax\(0,1fr\)\]/)
+    assert.equal(catalogDetailClass(kind).includes('hidden'), true)
+    assert.equal(catalogListsClass(kind), 'contents')
+    assert.match(catListClass(kind), /flex-col/)
+    assert.equal(catListClass(kind).includes('flex-nowrap'), false)
+    assert.match(catItemClass(true, kind), /w-full/)
+    assert.match(itemsPaneClass(kind), /h-full/)
+    assert.match(itemListClass(kind), /flex-1/)
+    assert.match(itemListClass(kind, 'card'), /flex-wrap/)
+  }
 })

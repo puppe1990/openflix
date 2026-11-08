@@ -12,6 +12,7 @@ import { readSecret, readSeed, saveSecret, webFetch } from './bridge.mjs'
 import { clearError, setError, state } from './state.mjs'
 import { readFreshCatalog, writeCatalogCache } from '../src/catalogCache.mjs'
 import { readFreshGuide, writeGuideCache } from '../src/epgGuideCache.mjs'
+import { indexProgramsByChannel } from '../src/xmltvNowNext.mjs'
 import { catalogsBucket, epgBucket, playlistStore } from './stores.mjs'
 
 /** Cliente Xtream apontado para o portal fake do demo. */
@@ -94,28 +95,57 @@ export function featureFirst(kind, catalog) {
     .catch(() => {})
 }
 
+let catalogFill = 0
+
+function catalogFillIsStale(mine, playlistId, client, kind) {
+  return (
+    mine !== catalogFill ||
+    state.playlistId !== playlistId ||
+    state.client !== client ||
+    state.shell.catalogKind !== kind
+  )
+}
+
+function bindFreshCatalog(kind, catalog) {
+  featureFirst(kind, catalog)
+  state.shell = bindCatalog(state.shell, catalog)
+}
+
 /** Carrega o catálogo com rotação de portal. Live fresco sai do sqlite. */
 export async function fillCatalog() {
+  const mine = ++catalogFill
+  const playlistId = state.playlistId
+  const client = state.client
+  const kind = state.shell.catalogKind
+  const source = playlistStore.list().find((item) => item.id === playlistId)?.kind ?? ''
   try {
     clearError()
-    const kind = state.shell.catalogKind
     const cached =
-      kind === 'live' && state.playlistId
-        ? readFreshCatalog(catalogsBucket, { playlistId: state.playlistId, kind })
+      kind === 'live' && playlistId
+        ? readFreshCatalog(catalogsBucket, { playlistId, kind, source })
         : null
     if (cached) {
-      featureFirst(kind, cached)
-      state.shell = bindCatalog(state.shell, cached)
+      if (catalogFillIsStale(mine, playlistId, client, kind)) return
+      bindFreshCatalog(kind, cached)
       return
     }
     const catalog = await withRotation(() => catalogFor(kind))
-    if (kind === 'live' && state.playlistId) {
-      writeCatalogCache(catalogsBucket, { playlistId: state.playlistId, kind, catalog })
+    if (catalogFillIsStale(mine, playlistId, client, kind)) return
+    if (kind === 'live' && playlistId) {
+      writeCatalogCache(catalogsBucket, { playlistId, kind, source, catalog })
     }
-    featureFirst(kind, catalog)
-    state.shell = bindCatalog(state.shell, catalog)
+    bindFreshCatalog(kind, catalog)
   } catch (error) {
+    if (catalogFillIsStale(mine, playlistId, client, kind)) return
     setError(error.message)
+  }
+}
+
+function setGuide(playlistId, programs) {
+  state.guide = {
+    key: playlistId,
+    programs,
+    byChannel: indexProgramsByChannel(programs),
   }
 }
 
@@ -125,15 +155,15 @@ export async function fillGuide() {
   if (!playlistId || typeof state.client?.epg !== 'function') return
   if (state.guide.key === playlistId) return
   const cached = readFreshGuide(epgBucket, { playlistId })
-  state.guide = { key: playlistId, programs: cached ?? [] }
+  setGuide(playlistId, cached ?? [])
   if (cached) return
   try {
     const programs = await withRotation(() => state.client.epg())
     writeGuideCache(epgBucket, { playlistId, programs })
-    state.guide = { key: playlistId, programs }
+    setGuide(playlistId, programs)
     state.redraw()
   } catch {
-    state.guide = { key: playlistId, programs: [] }
+    setGuide(playlistId, [])
   }
 }
 
@@ -153,9 +183,11 @@ export function startDemo() {
 }
 
 function activatePlaylist(client, playlist) {
+  catalogFill += 1
   state.client = client
   state.playlistId = playlist?.id ?? ''
   state.shell = createTvShell()
+  state.guide = { key: '', programs: [] }
   return hydrateSettingsForm(playlist)
 }
 
@@ -319,6 +351,7 @@ export async function openSavedPlaylist(id) {
   } else return
   state.shell = openHomeTile(focusHome(createTvShell(), 'live'))
   await fillCatalog()
+  state.redraw()
 }
 
 async function rememberSeed(draft, client, password) {

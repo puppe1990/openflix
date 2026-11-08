@@ -44,3 +44,11 @@ pub fn set(app: &tauri::AppHandle, account: &str, value: &str) -> Result<(), Str
     secrets.insert(account.to_string(), value.to_string());
     write_map(app, &secrets)
 }
+
+pub fn remove(app: &tauri::AppHandle, account: &str) -> Result<(), String> {
+    let mut secrets = read_map(app)?;
+    if secrets.remove(account).is_some() {
+        write_map(app, &secrets)?;
+    }
+    Ok(())
+}

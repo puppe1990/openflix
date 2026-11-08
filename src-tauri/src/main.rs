@@ -3,8 +3,15 @@
 mod app_paths;
 mod db;
 mod player;
+mod prime_api;
+mod prime_pane;
+mod prime_window;
 mod secrets;
 mod seed;
+mod youtube_api;
+mod youtube_media;
+mod youtube_proxy;
+mod youtube_window;
 
 use tauri::AppHandle;
 
@@ -12,6 +19,137 @@ use tauri::AppHandle;
 #[tauri::command]
 fn play_sidecar(url: String) -> Result<(), String> {
     player::play(&url)
+}
+
+/// Proxy allowlist do BFF Prime Video (enrichNav / getLandingPage).
+#[tauri::command]
+async fn prime_request(
+    app: AppHandle,
+    method: String,
+    path: String,
+    body: Option<String>,
+) -> Result<String, String> {
+    prime_api::request(&app, &method, &path, body.as_deref()).await
+}
+
+/// Abre a janela oficial do Prime Video para o login da conta Amazon.
+#[tauri::command]
+async fn prime_sign_in(app: AppHandle) -> Result<(), String> {
+    prime_window::sign_in(&app)
+}
+
+/// Abre o detalhe do título na janela oficial (o player roda no site da Amazon).
+#[tauri::command]
+async fn prime_open_player(app: AppHandle, url: String) -> Result<(), String> {
+    prime_window::open_player(&app, &url)
+}
+
+/// Abre o mesmo título no navegador padrão do sistema.
+#[tauri::command]
+async fn prime_open_external(url: String) -> Result<(), String> {
+    prime_window::open_external(&url)
+}
+
+/// Abre o título no painel embutido: webview filho da janela principal, sobre o retângulo
+/// que a UI reservou. Async porque `add_child` bloqueia esperando a main thread.
+#[tauri::command]
+async fn prime_pane_open(
+    app: AppHandle,
+    url: String,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    prime_pane::open(
+        &app,
+        &url,
+        prime_pane::PaneRect {
+            x,
+            y,
+            width,
+            height,
+        },
+    )
+}
+
+/// Reposiciona o painel sobre o placeholder (redesenho, resize, rolagem).
+#[tauri::command]
+async fn prime_pane_place(
+    app: AppHandle,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    prime_pane::place(
+        &app,
+        prime_pane::PaneRect {
+            x,
+            y,
+            width,
+            height,
+        },
+    )
+}
+
+/// Esconde o painel e devolve o foco para a UI, sem desfazer a sessão do player.
+#[tauri::command]
+async fn prime_pane_hide(app: AppHandle) -> Result<(), String> {
+    prime_pane::focus_shell(&app)
+}
+
+/// Fecha o painel, para o player oficial e devolve o foco para a UI.
+#[tauri::command]
+async fn prime_pane_close(app: AppHandle) -> Result<(), String> {
+    prime_pane::close(&app)?;
+    prime_pane::focus_shell(&app)
+}
+
+/// Copia a sessão do webview oficial para o cofre e devolve o header Cookie.
+#[tauri::command]
+async fn prime_session_cookie(app: AppHandle) -> Result<String, String> {
+    prime_window::session_cookie(&app)
+}
+
+/// Limpa o webview oficial e apaga o cookie do cofre.
+#[tauri::command]
+async fn prime_sign_out(app: AppHandle) -> Result<(), String> {
+    prime_window::sign_out(&app)
+}
+
+/// Proxy allowlist do Innertube YouTube (browse/search/player/next/guide).
+#[tauri::command]
+async fn youtube_request(
+    app: AppHandle,
+    path: String,
+    body: Option<String>,
+) -> Result<String, String> {
+    youtube_api::request(&app, &path, body.as_deref()).await
+}
+
+/// Abre a janela oficial do YouTube para o login da conta Google.
+#[tauri::command]
+async fn youtube_sign_in(app: AppHandle) -> Result<(), String> {
+    youtube_window::sign_in(&app)
+}
+
+/// Copia a sessão do webview oficial para o cofre e devolve o header Cookie.
+#[tauri::command]
+async fn youtube_session_cookie(app: AppHandle) -> Result<String, String> {
+    youtube_window::session_cookie(&app)
+}
+
+/// Limpa o webview oficial e apaga o cookie do cofre.
+#[tauri::command]
+async fn youtube_sign_out(app: AppHandle) -> Result<(), String> {
+    youtube_window::sign_out(&app)
+}
+
+/// Base do proxy local de vídeo (`http://127.0.0.1:{port}`).
+#[tauri::command]
+fn youtube_proxy_base() -> Result<String, String> {
+    youtube_proxy::base_url()
 }
 
 /// Grava a senha da playlist no cofre local 0600.
@@ -47,8 +185,28 @@ fn db_set(app: AppHandle, key: String, value: String) -> Result<(), String> {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_http::init())
+        .setup(|app| {
+            youtube_proxy::start(app.handle().clone())
+                .map(|_| ())
+                .map_err(|error| -> Box<dyn std::error::Error> { error.into() })
+        })
         .invoke_handler(tauri::generate_handler![
             play_sidecar,
+            prime_request,
+            prime_sign_in,
+            prime_open_player,
+            prime_open_external,
+            prime_pane_open,
+            prime_pane_place,
+            prime_pane_hide,
+            prime_pane_close,
+            prime_session_cookie,
+            prime_sign_out,
+            youtube_request,
+            youtube_sign_in,
+            youtube_session_cookie,
+            youtube_sign_out,
+            youtube_proxy_base,
             secret_set,
             secret_get,
             seed_read,

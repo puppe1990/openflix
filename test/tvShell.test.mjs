@@ -71,6 +71,39 @@ test('Escape no catálogo volta pra home', () => {
   assert.equal(shell.homeId, 'live')
 })
 
+test('Escape conserva o catálogo já carregado', () => {
+  const cat = fakerCategory({ id: 1 })
+  const stream = fakerLiveStream({ categoryId: 1 })
+  const catalog = mapCatalog({ kind: 'live', categories: [cat], streams: [stream] })
+  const bound = bindCatalog(openHomeTile(createTvShell()), catalog)
+  const home = goBack(bound)
+  assert.equal(home.screen, 'home')
+  assert.equal(home.catalog, bound.catalog)
+})
+
+test('voltar pra home e abrir a mesma aba reusa o catálogo', () => {
+  const cat = fakerCategory({ id: 1 })
+  const stream = fakerLiveStream({ categoryId: 1 })
+  const catalog = mapCatalog({ kind: 'live', categories: [cat], streams: [stream] })
+  const bound = bindCatalog(openHomeTile(createTvShell()), catalog)
+  const again = openHomeTile(goBack(bound))
+  assert.equal(again.screen, 'catalog')
+  assert.equal(again.catalogKind, 'live')
+  assert.equal(again.catalog, bound.catalog)
+  assert.equal(again.selectedItem.id, stream.stream_id)
+})
+
+test('abrir outra aba zera o catálogo', () => {
+  const cat = fakerCategory({ id: 1 })
+  const stream = fakerLiveStream({ categoryId: 1 })
+  const catalog = mapCatalog({ kind: 'live', categories: [cat], streams: [stream] })
+  const bound = bindCatalog(openHomeTile(createTvShell()), catalog)
+  const movies = openHomeTile(focusHome(goBack(bound), 'movies'))
+  assert.equal(movies.screen, 'catalog')
+  assert.equal(movies.catalogKind, 'movies')
+  assert.equal(movies.catalog, null)
+})
+
 test('handleKey mapeia D-pad da home e Enter', () => {
   let shell = handleKey(createTvShell(), 'ArrowRight')
   assert.equal(shell.homeId, 'movies')
@@ -79,6 +112,23 @@ test('handleKey mapeia D-pad da home e Enter', () => {
   assert.equal(shell.catalogKind, 'movies')
   shell = handleKey(shell, 'Escape')
   assert.equal(shell.screen, 'home')
+})
+
+test('bindCatalog de filmes também coloca Todos na frente', () => {
+  const title = faker.lorem.words(2)
+  const catalog = {
+    kind: 'vod',
+    categories: [
+      {
+        id: '1',
+        name: faker.commerce.department(),
+        items: [{ id: faker.number.int({ min: 10, max: 99 }), name: title }],
+      },
+    ],
+  }
+  const shell = bindCatalog(openHomeTile(focusHome(createTvShell(), 'movies')), catalog)
+  assert.equal(shell.catalog.categories[0].name, 'Todos')
+  assert.equal(shell.selectedItem.name, title)
 })
 
 test('Enter no item do faker abre o player', () => {
