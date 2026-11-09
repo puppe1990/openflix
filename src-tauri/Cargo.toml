@@ -1,7 +1,7 @@
 [package]
 name = "life-tv"
 version = "0.3.0"
-description = "Player 10-foot de playlists próprias Xtream/M3U"
+description = "10-foot player for your own Xtream/M3U, Prime Video, and YouTube"
 edition = "2021"
 
 [build-dependencies]
