@@ -4,6 +4,7 @@ import { createJsonBucket } from '../src/jsonBucket.mjs'
 import { redactPlaylist } from '../src/playlistSecret.mjs'
 import { createResumeStore } from '../src/resumeStore.mjs'
 import { createSqliteBucket, migrateLocalToSqlite } from '../src/sqliteBucket.mjs'
+import { createThemeStore } from '../src/theme.mjs'
 import { createWatchHistoryStore } from '../src/watchHistoryStore.mjs'
 import { localStore, tauriInvoke } from './bridge.mjs'
 import { STORAGE_KEYS } from './config.mjs'
@@ -22,6 +23,8 @@ const historyBucket = makeBucket(STORAGE_KEYS.history)
 export const catalogsBucket = makeBucket(STORAGE_KEYS.catalogs)
 /** xmltv diário persistido. */
 export const epgBucket = makeBucket(STORAGE_KEYS.epg)
+/** Claro/escuro do chrome 10-foot. */
+export const themeBucket = makeBucket(STORAGE_KEYS.theme)
 
 /** No shell Tauri a senha sai da playlist e vai pro cofre local. */
 const secretlessBucket = {
@@ -41,6 +44,8 @@ export const favStore = createFavLockStore({ bucket: favsBucket })
 export const resumeStore = createResumeStore({ bucket: resumeBucket })
 /** Canais e títulos abertos recentemente, persistidos. */
 export const historyStore = createWatchHistoryStore({ bucket: historyBucket })
+/** Modo claro/escuro, persistido. */
+export const themeStore = createThemeStore({ bucket: themeBucket })
 
 /** No Tauri, migra localStorage → sqlite e hidrata as stores. */
 export async function loadStores() {
@@ -58,9 +63,11 @@ export async function loadStores() {
     historyBucket.load(),
     catalogsBucket.load(),
     epgBucket.load(),
+    themeBucket.load(),
   ])
   playlistStore.hydrate()
   favStore.hydrate()
   resumeStore.hydrate()
   historyStore.hydrate()
+  themeStore.hydrate()
 }

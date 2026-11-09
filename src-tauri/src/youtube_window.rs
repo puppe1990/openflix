@@ -1,8 +1,8 @@
 use tauri::webview::{Cookie, PageLoadEvent};
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
-use crate::secrets;
-use crate::youtube_api::{COOKIE_ACCOUNT, ORIGIN};
+use crate::youtube_api::ORIGIN;
+use crate::youtube_bind;
 
 const WINDOW_LABEL: &str = "youtube-oficial";
 const WINDOW_TITLE: &str = "YouTube — OpenFlix";
@@ -17,6 +17,7 @@ const HOSTS: [&str; 5] = [
     "accounts.youtube.com",
     "accounts.google.com",
 ];
+#[allow(dead_code)]
 const AUTH_COOKIE_NAMES: [&str; 20] = [
     "SID",
     "HSID",
@@ -49,6 +50,7 @@ pub fn allowed_url(raw: &str) -> bool {
 }
 
 /// Header Cookie só com os nomes da sessão YouTube, sem __Host-*.
+#[allow(dead_code)]
 pub fn cookie_header(cookies: &[Cookie<'static>]) -> String {
     let mut picked = Vec::new();
     for name in AUTH_COOKIE_NAMES {
@@ -62,6 +64,7 @@ pub fn cookie_header(cookies: &[Cookie<'static>]) -> String {
 }
 
 /// Login real: LOGIN_INFO ou SAPISID. SID/VISITOR sozinhos deixam o Innertube anônimo.
+#[allow(dead_code)]
 pub fn session_ready(header: &str) -> bool {
     header.split(';').any(|part| {
         let Some((name, value)) = part.trim().split_once('=') else {
@@ -71,16 +74,34 @@ pub fn session_ready(header: &str) -> bool {
     })
 }
 
-/// Captura só depois do Google devolver o usuário em youtube.com.
+/// Captura no Google ou no YouTube: o SAPISID nasce em accounts.google.com.
 pub fn capture_page_ok(raw: &str) -> bool {
-    let Ok(url) = Url::parse(raw) else {
-        return false;
+    allowed_url(raw)
+}
+
+fn cookie_window(app: &AppHandle) -> Option<WebviewWindow> {
+    app.get_webview_window(WINDOW_LABEL)
+        .or_else(|| app.get_webview_window("main"))
+}
+
+fn collect_cookies(app: &AppHandle) -> Result<String, String> {
+    let Some(window) = cookie_window(app) else {
+        return Ok("pending".to_string());
     };
-    url.scheme() == "https"
-        && matches!(
-            url.host_str(),
-            Some("www.youtube.com" | "youtube.com" | "m.youtube.com")
-        )
+    let cookies = window.cookies().map_err(|error| {
+        format!("sessão do youtube recusada: recebido {error}, esperado jar do webview")
+    })?;
+    let pairs: Vec<(String, String)> = cookies
+        .iter()
+        .map(|cookie| (cookie.name().to_string(), cookie.value().to_string()))
+        .collect();
+    match youtube_bind::extract_cookie_auth(&pairs) {
+        Some(auth) => {
+            youtube_bind::store_auth(app, &auth)?;
+            Ok("authorized".to_string())
+        }
+        None => Ok("pending".to_string()),
+    }
 }
 
 fn capture_if_ready(app: &AppHandle, window: &WebviewWindow) -> Result<(), String> {
@@ -90,15 +111,9 @@ fn capture_if_ready(app: &AppHandle, window: &WebviewWindow) -> Result<(), Strin
     if !capture_page_ok(url.as_str()) {
         return Ok(());
     }
-    let cookies = window.cookies().map_err(|error| {
-        format!("sessão do youtube recusada: recebido {error}, esperado jar do webview")
-    })?;
-    let header = cookie_header(&cookies);
-    if !session_ready(&header) {
-        return Ok(());
+    if collect_cookies(app)? == "authorized" {
+        let _ = app.emit("youtube-session", true);
     }
-    secrets::set(app, COOKIE_ACCOUNT, &header)?;
-    let _ = app.emit("youtube-session", true);
     Ok(())
 }
 
@@ -129,7 +144,7 @@ fn ensure_window(app: &AppHandle, target: Url) -> Result<WebviewWindow, String> 
             if payload.event() != PageLoadEvent::Finished {
                 return;
             }
-            if !capture_page_ok(payload.url().as_str()) {
+            if !allowed_url(payload.url().as_str()) {
                 return;
             }
             let app = webview.app_handle().clone();
@@ -144,24 +159,37 @@ pub fn sign_in(app: &AppHandle) -> Result<(), String> {
     ensure_window(app, check_url(LOGIN_URL)?).map(|_| ())
 }
 
-/// Lê os cookies da janela oficial, guarda a sessão YouTube no cofre e devolve o header.
+/// Lê o jar (janela de login ou a principal), guarda SAPISID e devolve o Cookie.
 pub fn session_cookie(app: &AppHandle) -> Result<String, String> {
-    let window = app.get_webview_window(WINDOW_LABEL).ok_or_else(|| {
-        "sessão do youtube recusada: recebido janela fechada, esperado login em Entrar no YouTube"
-            .to_string()
-    })?;
-    let cookies = window.cookies().map_err(|error| {
-        format!("sessão do youtube recusada: recebido {error}, esperado jar do webview")
-    })?;
-    let header = cookie_header(&cookies);
-    if header.is_empty() {
+    if collect_cookies(app)? != "authorized" {
         return Err(
             "sessão do youtube recusada: recebido jar sem cookie de sessão, esperado login concluído"
                 .to_string(),
         );
     }
-    secrets::set(app, COOKIE_ACCOUNT, &header)?;
-    Ok(header)
+    youtube_bind::bound_cookie_header(app)?.ok_or_else(|| {
+        "sessão do youtube recusada: recebido jar sem cookie de sessão, esperado login concluído"
+            .to_string()
+    })
+}
+
+/// OurTube auth_check: authorized / pending / no_window. Fecha o login no authorized.
+pub fn auth_check(app: &AppHandle) -> Result<String, String> {
+    if app.get_webview_window(WINDOW_LABEL).is_none() {
+        return Ok(if youtube_bind::load_auth(app)?.is_some() {
+            "authorized".to_string()
+        } else {
+            "no_window".to_string()
+        });
+    }
+    let status = collect_cookies(app)?;
+    if status == "authorized" {
+        if let Some(window) = app.get_webview_window(WINDOW_LABEL) {
+            let _ = window.close();
+        }
+        let _ = app.emit("youtube-session", true);
+    }
+    Ok(status)
 }
 
 /// Fecha a sessão no webview oficial e apaga o cookie do cofre.
@@ -170,8 +198,9 @@ pub fn sign_out(app: &AppHandle) -> Result<(), String> {
         window.clear_all_browsing_data().map_err(|error| {
             format!("sessão do youtube recusada: recebido {error}, esperado limpar o webview")
         })?;
+        let _ = window.close();
     }
-    secrets::remove(app, COOKIE_ACCOUNT)
+    youtube_bind::clear_auth(app)
 }
 
 #[cfg(test)]
@@ -209,14 +238,15 @@ mod tests {
     }
 
     #[test]
-    fn capture_page_ok_so_youtube_depois_do_login() {
+    fn capture_page_ok_aceita_google_e_youtube() {
         assert!(capture_page_ok("https://www.youtube.com/"));
         assert!(capture_page_ok("https://m.youtube.com/feed/subscriptions"));
         assert!(capture_page_ok("https://youtube.com/"));
-        assert!(!capture_page_ok(
+        assert!(capture_page_ok(
             "https://accounts.google.com/ServiceLogin?service=youtube"
         ));
         assert!(!capture_page_ok("http://www.youtube.com/"));
+        assert!(!capture_page_ok("https://example.net/"));
     }
 
     #[test]

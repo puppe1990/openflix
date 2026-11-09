@@ -26,7 +26,12 @@ export async function playYoutubeCard(card) {
     const base = await loadYoutubeProxyBase()
     const item = playableYoutubeItem(card, base, playback)
     state.errorText = ''
-    await transitionTo({ ...state.shell, selectedItem: item, screen: 'player' })
+    await transitionTo({
+      ...state.shell,
+      selectedItem: item,
+      screen: 'player',
+      catalogKind: 'youtube',
+    })
   } catch (error) {
     state.errorText = formatYoutubeError(error)
     state.redraw()
@@ -149,11 +154,6 @@ function youtubeHead() {
   const head = el('div', 'grid max-w-[56ch] gap-2')
   head.append(
     el('h1', 'm-0 font-display text-[clamp(24px,2vw,34px)] font-bold tracking-tight', 'YouTube'),
-    el(
-      'p',
-      'm-0 max-w-[56ch] text-[13px] text-mute',
-      'Catálogo nativo pelo Innertube. O player do OpenFlix toca o vídeo pelo proxy local.',
-    ),
   )
   const open = el(
     'button',
@@ -218,8 +218,8 @@ export function renderYoutube() {
   const rows = el('div', 'grid min-w-0 flex-1 gap-8 overflow-y-auto')
   if (state.youtube.rows.length === 0) {
     const empty = state.errorText
-      ? 'Não deu para carregar o catálogo. Abra o app Tauri e entre no YouTube em Ajustes.'
-      : 'O Início do YouTube vem vazio sem sessão. Entre em Ajustes, ou busque no topo.'
+      ? 'Não deu para carregar o catálogo. Tente outro destino ou busque no topo.'
+      : 'O Início do YouTube vem vazio sem sessão. Entre pelo botão acima, ou busque no topo.'
     rows.append(el('p', 'm-0 text-[14px] text-mute', empty))
   }
   state.youtube.rows.forEach((row, rowIndex) => rows.append(rowSection(row, rowIndex)))

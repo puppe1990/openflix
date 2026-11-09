@@ -15,6 +15,9 @@ import {
   hudBrandClass,
   hudOverlayClass,
   hudPauseClass,
+  hudVolumeClass,
+  hudVolumeLabelClass,
+  hudVolumeSliderClass,
   itemClass,
   itemListClass,
   itemsPaneClass,
@@ -24,6 +27,7 @@ import {
   playerUrlClass,
   qualityPanelClass,
   tabClass,
+  themeToggleClass,
   tileClass,
 } from '../src/tvSkin.mjs'
 
@@ -69,6 +73,13 @@ test('ação secundária é superfície fumê', () => {
   assert.match(ghostClass(), /text-ink/)
 })
 
+test('botão de tema é alvo 10-foot no header', () => {
+  assert.match(themeToggleClass(), /h-9/)
+  assert.match(themeToggleClass(), /w-9/)
+  assert.match(themeToggleClass(), /bg-row/)
+  assert.match(themeToggleClass(), /cursor-pointer/)
+})
+
 test('chip da playlist ativa usa o vermelho', () => {
   assert.match(playlistChipClass(true), /bg-accent/)
   assert.match(playlistChipClass(false), /bg-panel/)
@@ -86,6 +97,15 @@ test('HUD cinema cobre o quadro e pinta a pílula OpenFlix', () => {
   assert.match(hudPauseClass(), /rounded-2xl/)
   assert.match(hudBrandClass(), /tracking-\[0\.16em\]/)
   assert.match(qualityPanelClass(), /bottom-24/)
+})
+
+test('HUD de volume é pílula de vidro com trilha gorda', () => {
+  assert.match(hudVolumeClass(), /rounded-full/)
+  assert.match(hudVolumeClass(), /bg-black\/70/)
+  assert.match(hudVolumeClass(), /ring-white\/20/)
+  assert.match(hudVolumeSliderClass(), /appearance-none/)
+  assert.match(hudVolumeSliderClass(), /w-36/)
+  assert.match(hudVolumeLabelClass(), /tabular-nums/)
 })
 
 test('player usa URL em cinza e título Chivo', () => {

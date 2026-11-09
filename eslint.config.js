@@ -9,6 +9,7 @@ export default [
       'package-lock.json',
       '.tauri-dist/**',
       'src-tauri/target/**',
+      'src-tauri/ejs/**',
       'web/vendor/**',
     ],
   },

@@ -1,7 +1,5 @@
 use sha1::{Digest, Sha1};
 
-use crate::secrets;
-
 pub const ORIGIN: &str = "https://www.youtube.com";
 pub const COOKIE_ACCOUNT: &str = "youtube_cookie";
 pub const ANDROID_USER_AGENT: &str =
@@ -148,7 +146,12 @@ pub async fn request(
         ));
     }
     let payload = body.unwrap_or("{}");
-    let cookie = secrets::get(app, COOKIE_ACCOUNT)?;
+    let app_bind = app.clone();
+    let cookie = tauri::async_runtime::spawn_blocking(move || {
+        crate::youtube_bind::bound_cookie_header(&app_bind)
+    })
+    .await
+    .map_err(|error| format!("youtube recusou: recebido {error}, esperado bind da sessão"))??;
     let headers = innertube_headers(cookie.as_deref(), &client_name(payload));
     let client = reqwest::Client::builder()
         .gzip(true)
@@ -212,6 +215,23 @@ fn ios_player_body(video_id: &str) -> String {
     .to_string()
 }
 
+fn web_player_body(video_id: &str) -> String {
+    serde_json::json!({
+        "context": {
+            "client": {
+                "clientName": "WEB",
+                "clientVersion": WEB_CLIENT_VERSION,
+                "hl": "pt",
+                "gl": "BR"
+            }
+        },
+        "contentCheckOk": true,
+        "racyCheckOk": true,
+        "videoId": video_id
+    })
+    .to_string()
+}
+
 fn playable_ok(payload: &serde_json::Value) -> bool {
     payload
         .pointer("/playabilityStatus/status")
@@ -258,16 +278,18 @@ fn hls_manifest_url(payload: &serde_json::Value) -> Option<String> {
 }
 
 fn choose_player_payload(
-    android: Result<serde_json::Value, String>,
-    ios: Result<serde_json::Value, String>,
+    attempts: impl IntoIterator<Item = Result<serde_json::Value, String>>,
 ) -> Result<serde_json::Value, String> {
-    match android {
-        Ok(payload) if playable_ok(&payload) => Ok(payload),
-        other => match ios {
-            Ok(payload) if playable_ok(&payload) => Ok(payload),
-            ios_other => other.or(ios_other),
-        },
+    let mut last = Err(
+        "player do youtube recusado: recebido nenhum /player, esperado ANDROID, IOS ou WEB".into(),
+    );
+    for attempt in attempts {
+        match attempt {
+            Ok(payload) if playable_ok(&payload) => return Ok(payload),
+            other => last = other,
+        }
     }
+    last
 }
 
 fn fetch_player_payload(
@@ -305,7 +327,13 @@ fn player_payload(cookie: Option<&str>, video_id: &str) -> Result<serde_json::Va
         }
     }
     let ios = fetch_player_payload(cookie, "IOS", ios_player_body(video_id));
-    choose_player_payload(android, ios)
+    if let Ok(payload) = &ios {
+        if playable_ok(payload) {
+            return ios;
+        }
+    }
+    let web = fetch_player_payload(cookie, "WEB", web_player_body(video_id));
+    choose_player_payload([android, ios, web])
 }
 
 /// Resolve a URL googlevideo do itag 18 (chamada bloqueante do proxy).
@@ -363,11 +391,40 @@ mod tests {
                 "hlsManifestUrl": "https://manifest.googlevideo.com/api/manifest/hls_variant/x/file/index.m3u8"
             }
         }));
-        let chosen = choose_player_payload(android, ios).unwrap();
+        let chosen = choose_player_payload([android, ios]).unwrap();
         assert!(playable_ok(&chosen));
         assert!(hls_manifest_url(&chosen)
             .unwrap()
             .contains("manifest.googlevideo.com"));
+    }
+
+    #[test]
+    fn choose_player_payload_cai_no_web_quando_android_e_ios_pedem_login() {
+        let android = Ok(serde_json::json!({
+            "playabilityStatus": {
+                "status": "LOGIN_REQUIRED",
+                "reason": "Faça login para confirmar que você não é um bot"
+            }
+        }));
+        let ios = Ok(serde_json::json!({
+            "playabilityStatus": {
+                "status": "LOGIN_REQUIRED",
+                "reason": "Faça login para confirmar que você não é um bot"
+            }
+        }));
+        let web = Ok(serde_json::json!({
+            "playabilityStatus": { "status": "OK" },
+            "streamingData": {
+                "formats": [{
+                    "itag": 18,
+                    "mimeType": "video/mp4; codecs=\"avc1\"",
+                    "url": "https://rr1---sn.googlevideo.com/videoplayback?id=x&itag=18"
+                }]
+            }
+        }));
+        let chosen = choose_player_payload([android, ios, web]).unwrap();
+        assert!(playable_ok(&chosen));
+        assert!(muxed_url(&chosen).unwrap().contains("googlevideo.com"));
     }
 
     #[test]

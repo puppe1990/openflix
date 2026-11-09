@@ -25,6 +25,14 @@ test('cabeçalho e título HTML usam OpenFlix', async () => {
   assert.doesNotMatch(html, />Life TV</)
 })
 
+test('cabeçalho troca o hint de teclado por botão claro/escuro', async () => {
+  const html = await readFile(new URL('../web/index.html', import.meta.url), 'utf8')
+  assert.doesNotMatch(html, /Enter · Esc/)
+  assert.doesNotMatch(html, /id="hint"/)
+  assert.match(html, /id="theme"/)
+  assert.match(html, /data-theme-toggle/)
+})
+
 test('build copia o binário do Cargo, não o slug do productName', async () => {
   const script = await readFile(new URL('../scripts/build-macos-app.sh', import.meta.url), 'utf8')
   assert.match(script, /Cargo\.toml/)

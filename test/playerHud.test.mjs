@@ -8,6 +8,8 @@ import {
   playerHudChrome,
   playerHudProgress,
   playerSeekTarget,
+  playerVolumeLabel,
+  playerVolumePercent,
 } from '../src/playerHud.mjs'
 
 beforeEach(() => {
@@ -88,4 +90,26 @@ test('playerHudChrome de série só mostra próximo e abertura com dado real', (
 test('playbackRateLabel pinta 1.0x', () => {
   assert.equal(playbackRateLabel(1), '1.0x')
   assert.equal(playbackRateLabel(1.5), '1.5x')
+})
+
+test('playerVolumePercent converte 0..1 em 0..100', () => {
+  assert.equal(playerVolumePercent({ volume: 1 }), 100)
+  assert.equal(playerVolumePercent({ volume: 0.4 }), 40)
+  assert.equal(playerVolumePercent({ volume: 0 }), 0)
+})
+
+test('playerVolumePercent no mudo devolve 0', () => {
+  assert.equal(playerVolumePercent({ volume: 0.8, muted: true }), 0)
+})
+
+test('playerVolumePercent recusa volume que não é número', () => {
+  assert.throws(
+    () => playerVolumePercent({ volume: faker.lorem.word() }),
+    /volume recusado: recebido ".*", esperado 0\.\.1/,
+  )
+})
+
+test('playerVolumeLabel pinta o percentual', () => {
+  assert.equal(playerVolumeLabel({ volume: 0.4 }), '40%')
+  assert.equal(playerVolumeLabel({ volume: 1, muted: true }), '0%')
 })

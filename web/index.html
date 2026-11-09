@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -46,9 +46,7 @@
         />
       </div>
       <div class="ml-auto flex items-center gap-3">
-        <span id="hint" class="hidden text-[12px] tracking-[0.08em] text-mute lg:inline"
-          >← → ↑ ↓ · Enter · Esc</span
-        >
+        <button type="button" id="theme" data-theme-toggle aria-label="Modo claro"></button>
         <span
           id="signal"
           class="hidden items-center gap-1.5 rounded bg-row px-2 py-1 text-[10px] font-bold tracking-wide text-ink uppercase sm:inline-flex"
@@ -263,8 +261,8 @@
         <div id="settings-pane-youtube" hidden>
           <h2 class="m-0 mb-2 font-display text-[22px] font-bold tracking-tight">YouTube</h2>
           <p class="mb-4 max-w-[46ch] text-[14px] text-mute">
-            Entre na janela oficial do YouTube dentro do app: a senha não passa pelo OpenFlix, e a
-            sessão alimenta o catálogo nativo pelo Innertube.
+            Entre com sua conta na janela do Google. O app detecta sozinho quando terminar; a senha
+            não passa pelo OpenFlix.
           </p>
           <div class="mb-4 flex flex-wrap gap-3">
             <button

@@ -7,7 +7,7 @@ import {
   shouldPictureInPicture,
 } from '../src/pictureInPicture.mjs'
 import { createTvShell } from '../src/tvShell.mjs'
-import { faker } from './factories.mjs'
+import { faker, fakerYoutubeVideoId } from './factories.mjs'
 
 faker.seed(77)
 
@@ -49,4 +49,36 @@ test('voltar do PiP reabre o player com o item que estava tocando', () => {
 
 test('voltar do PiP recusa snapshot sem item', () => {
   assert.throws(() => restorePlayerFromPip(createTvShell(), {}), /selectedItem/)
+})
+
+test('voltar do PiP reabre o player do YouTube', () => {
+  const videoId = fakerYoutubeVideoId()
+  const item = {
+    id: videoId,
+    name: faker.lorem.words(3),
+    url: `http://127.0.0.1:43111/video/${videoId}.mp4`,
+  }
+  const shell = restorePlayerFromPip(createTvShell(), {
+    catalogKind: 'youtube',
+    selectedItem: item,
+  })
+  assert.equal(shell.screen, 'player')
+  assert.equal(shell.catalogKind, 'youtube')
+  assert.equal(shell.selectedItem, item)
+})
+
+test('voltar do PiP do YouTube infere o destino quando catalogKind veio vazio', () => {
+  const videoId = fakerYoutubeVideoId()
+  const item = {
+    id: videoId,
+    name: faker.lorem.words(3),
+    url: `http://127.0.0.1:43111/video/${videoId}.m3u8`,
+  }
+  const shell = restorePlayerFromPip(createTvShell(), {
+    catalogKind: null,
+    selectedItem: item,
+  })
+  assert.equal(shell.screen, 'player')
+  assert.equal(shell.catalogKind, 'youtube')
+  assert.equal(shell.selectedItem, item)
 })

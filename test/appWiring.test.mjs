@@ -185,7 +185,7 @@ test('aba YouTube mostra o trilho chrome mesmo no preview sem Tauri', async () =
   const dests = [...document.querySelectorAll('#youtube [data-youtube-dest]')]
   assert.deepEqual(
     dests.map((node) => node.dataset.youtubeDest),
-    ['FEwhat_to_watch', 'FEsubscriptions', 'FEhistory', 'FEtrending'],
+    ['FEwhat_to_watch', 'FEsubscriptions', 'FEhistory', 'FElibrary'],
   )
   assert.match(document.getElementById('error').textContent, /youtube recusou/)
 })

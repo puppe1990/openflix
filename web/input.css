@@ -59,9 +59,26 @@
   --color-good: #46d369;
 }
 
+html[data-theme='light'] {
+  color-scheme: light;
+  --color-ink: #1a1612;
+  --color-mute: #6b6358;
+  --color-action: #1a1612;
+  --color-panel: #fffaf3;
+  --color-row: #e8e0d2;
+  --color-line: #d4cbb8;
+  --color-void: #f3efe6;
+  --color-well: #e8e2d6;
+  --color-warn: #9b2c2c;
+}
+
 @layer base {
   html {
     color-scheme: dark;
+  }
+
+  html[data-theme='light'] {
+    color-scheme: light;
   }
 
   html,
@@ -174,6 +191,39 @@ body.is-fullscreen #player-frame:has([data-hud-idle]) {
 
 [data-player-progress] {
   min-height: 4px;
+}
+
+[data-player-volume] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 999px;
+}
+
+[data-player-volume]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -5px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 0 0 4px rgb(229 9 20 / 0.28);
+}
+
+[data-player-volume]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+}
+
+[data-player-volume]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 0 0 4px rgb(229 9 20 / 0.28);
 }
 
 [data-player-progress]:hover,

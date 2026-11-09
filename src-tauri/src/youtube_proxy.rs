@@ -7,12 +7,12 @@ use std::time::{Duration, Instant};
 
 use tauri::AppHandle;
 
-use crate::secrets;
-use crate::youtube_api::{self, ANDROID_USER_AGENT, COOKIE_ACCOUNT};
+use crate::youtube_api::{self, innertube_user_agent};
 use crate::youtube_media::{
     allowed_media_url, is_hls_playlist_url, parse_video_request, parse_ytg, range_header,
     rewrite_hls_playlist,
 };
+use crate::youtube_nsig;
 
 const CACHE_TTL: Duration = Duration::from_secs(600);
 static PROXY_BASE: OnceLock<String> = OnceLock::new();
@@ -44,6 +44,7 @@ pub fn start(app: AppHandle) -> Result<String, String> {
         .port();
     let base = format!("http://127.0.0.1:{port}");
     let _ = PROXY_BASE.set(base.clone());
+    thread::spawn(youtube_nsig::prefetch_player);
     let cache: Arc<Mutex<HashMap<String, CachedUrl>>> = Arc::new(Mutex::new(HashMap::new()));
     thread::spawn(move || {
         for connection in listener.incoming().flatten() {
@@ -149,7 +150,7 @@ fn media_url(
             return Ok(url);
         }
     }
-    let cookie = secrets::get(app, COOKIE_ACCOUNT)?;
+    let cookie = crate::youtube_bind::bound_cookie_header(app)?;
     let url = if kind == "m3u8" {
         youtube_api::resolve_hls_url(cookie.as_deref(), video_id)?
     } else {
@@ -175,7 +176,7 @@ fn http_client() -> Result<reqwest::blocking::Client, String> {
 fn fetch_and_rewrite(url: &str) -> Result<String, String> {
     let response = http_client()?
         .get(url)
-        .header("user-agent", ANDROID_USER_AGENT)
+        .header("user-agent", innertube_user_agent("WEB"))
         .header("accept", "*/*")
         .send()
         .map_err(|error| format!("{error}"))?;
@@ -199,9 +200,10 @@ fn pipe(
     range: Option<&str>,
     force_range: bool,
 ) -> Result<u16, String> {
+    let media = youtube_nsig::descramble_media(media);
     let mut builder = http_client()?
-        .get(media)
-        .header("user-agent", ANDROID_USER_AGENT)
+        .get(&media)
+        .header("user-agent", innertube_user_agent("WEB"))
         .header("accept", "*/*");
     let range = range.map(str::trim).filter(|item| !item.is_empty());
     if let Some(value) = range {

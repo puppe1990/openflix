@@ -9,7 +9,9 @@ mod prime_window;
 mod secrets;
 mod seed;
 mod youtube_api;
+mod youtube_bind;
 mod youtube_media;
+mod youtube_nsig;
 mod youtube_proxy;
 mod youtube_window;
 
@@ -134,6 +136,12 @@ async fn youtube_sign_in(app: AppHandle) -> Result<(), String> {
     youtube_window::sign_in(&app)
 }
 
+/// Lê o jar do webview (login ou janela principal) e grava SAPISID no cofre.
+#[tauri::command]
+async fn youtube_auth_check(app: AppHandle) -> Result<String, String> {
+    youtube_window::auth_check(&app)
+}
+
 /// Copia a sessão do webview oficial para o cofre e devolve o header Cookie.
 #[tauri::command]
 async fn youtube_session_cookie(app: AppHandle) -> Result<String, String> {
@@ -204,6 +212,7 @@ fn main() {
             prime_sign_out,
             youtube_request,
             youtube_sign_in,
+            youtube_auth_check,
             youtube_session_cookie,
             youtube_sign_out,
             youtube_proxy_base,

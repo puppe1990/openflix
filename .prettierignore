@@ -5,3 +5,4 @@ web/style.css
 src-tauri/target
 src-tauri/gen
 web/vendor
+src-tauri/ejs
