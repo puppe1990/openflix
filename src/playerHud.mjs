@@ -53,6 +53,22 @@ export function playerHudProgress({ current, duration } = {}) {
   }
 }
 
+/** Percentual 0..100 a partir de volume HTML (0..1) e mudo. */
+export function playerVolumePercent({ volume, muted } = {}) {
+  const n = Number(volume)
+  if (!Number.isFinite(n)) {
+    throw new Error(`volume recusado: recebido ${JSON.stringify(volume)}, esperado 0..1`)
+  }
+  if (muted === true) return 0
+  const clamped = Math.min(1, Math.max(0, n))
+  return Math.round(clamped * 100)
+}
+
+/** Rótulo `40%` do cluster de volume. */
+export function playerVolumeLabel(opts) {
+  return `${playerVolumePercent(opts)}%`
+}
+
 /** Texto `28:45 / 54:20`. */
 export function playerClockRange(current, duration) {
   const progress = playerHudProgress({ current, duration })

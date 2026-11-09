@@ -77,7 +77,7 @@ function qualityPanel({ options, selectedId, onPick, onClose }) {
 function placeQualityButton(toolbar, onToggle) {
   const button = qualityButton()
   button.addEventListener('click', onToggle)
-  const anchor = toolbar.querySelector('[data-sidecar], [data-prime-video]')
+  const anchor = toolbar.querySelector('[data-sidecar]')
   if (anchor) toolbar.insertBefore(button, anchor)
   else toolbar.append(button)
   return button

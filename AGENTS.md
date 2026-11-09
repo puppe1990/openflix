@@ -23,7 +23,7 @@ Release: tag `vX.Y.Z` dispara `.github/workflows/release.yml` (Mac aarch64/x86_6
 Mapa dos endpoints oficiais do Prime Video (loja, PRS/PES, DRM, CDN):
 `docs/prime-video-endpoints.md`.
 
-Mapa do Innertube YouTube (WEB catálogo + ANDROID `/player` itag 18, IOS se `LOGIN_REQUIRED`):
+Mapa do Innertube YouTube (WEB catálogo + ANDROID `/player` itag 18, IOS/WEB se `LOGIN_REQUIRED`):
 `docs/youtube-innertube-endpoints.md`.
 
 ## Configuração (sem hardcode)
@@ -50,13 +50,14 @@ Mapa do Innertube YouTube (WEB catálogo + ANDROID `/player` itag 18, IOS se `LO
 - `primeWindow.mjs` — login na janela oficial: `prime_sign_in`, `prime_open_external` (fallback).
 - `primePane.mjs` — player oficial embutido: webview filho `prime-pane` sobre `#primePaneHost`.
 - `youtubeVideo.mjs` — atalho da aba: dispara o evento que abre a tela YouTube.
-- `youtubeClient.mjs` — POST Innertube (Tauri `youtube_request` só; preview recusa CORS). Trilho: Início / Inscrições / Histórico / Em alta.
+- `youtubeClient.mjs` — POST Innertube (Tauri `youtube_request` só; preview recusa CORS). Trilho: Início / Inscrições / Histórico / Biblioteca (`FEtrending` o YouTube retirou; browse 400).
 - `youtubeSession.mjs` — sessão no cofre (`youtube_cookie`), sync do webview oficial e logout.
 - `youtubeView.mjs` — catálogo nativo 10-foot: trilho, fileiras, detalhe, `handleYoutubeKey` (Enter toca no player OpenFlix).
-- `youtubeWindow.mjs` — login na janela oficial: `youtube_sign_in` (a sessão grava sozinha no page-load).
+- `youtubeWindow.mjs` — login CookieAuth (OurTube): `youtube_sign_in` + poll `youtube_auth_check` até SAPISID; bind HTTP continue=`www.youtube.com` minta LOGIN_INFO.
 - `render.mjs` — `renderAll()` a partir de `state`.
-- `state.mjs` / `stores.mjs` / `bridge.mjs` / `dom.mjs` — estado, stores, Tauri/storage, helpers DOM.
-- Núcleo puro e testado em `src/` (`primeApi`, `primeNav`, `primeLanding`, `primeLandingForm`, `primeCookie`, `primePlay`, `primePaneRect`, `primeFocus`, `settingsTabs`, `youtubeApi`, `youtubeNav`, `youtubeBrowse`, `youtubeSearch`, `youtubePlayer`, `youtubePlay`, `youtubeCookie`, `youtubeFocus`). Ajustes internos: Playlists (M3U), Streaming (XC), Prime Video e YouTube (login, sessão e cookie). Shell Tauri: `src-tauri/src/prime_api.rs` (allowlist, cookie do cofre), `prime_window.rs` (login oficial, jar de cookie, logout), `prime_pane.rs` (webview filho na janela principal), `youtube_api.rs` (Innertube WEB + ANDROID `/player`, IOS se `LOGIN_REQUIRED`), `youtube_window.rs` (login Google/YouTube, captura automática da sessão), `youtube_media.rs` (parser HLS/Range) e `youtube_proxy.rs` (Range mp4 + rewrite HLS em `127.0.0.1`). `primeView` e `youtubeView` têm teste; o resto das views valide rodando o app.
+- `themeView.mjs` — botão claro/escuro do header (`#theme`); `data-theme` no `<html>`.
+- `state.mjs` / `stores.mjs` / `bridge.mjs` / `dom.mjs` — estado, stores (inclui `themeStore`), Tauri/storage, helpers DOM.
+- Núcleo puro e testado em `src/` (`primeApi`, `primeNav`, `primeLanding`, `primeLandingForm`, `primeCookie`, `primePlay`, `primePaneRect`, `primeFocus`, `settingsTabs`, `youtubeApi`, `youtubeNav`, `youtubeBrowse`, `youtubeSearch`, `youtubePlayer`, `youtubePlay`, `youtubeCookie`, `youtubeFocus`). Ajustes internos: Playlists (M3U), Streaming (XC), Prime Video e YouTube (login, sessão e cookie). Shell Tauri: `src-tauri/src/prime_api.rs` (allowlist, cookie do cofre), `prime_window.rs` (login oficial, jar de cookie, logout), `prime_pane.rs` (webview filho na janela principal), `youtube_api.rs` (Innertube WEB + ANDROID `/player`, IOS/WEB se `LOGIN_REQUIRED`), `youtube_window.rs` (login Google/YouTube, captura automática da sessão), `youtube_media.rs` (parser HLS/Range), `youtube_nsig.rs` (n-sig WEB via EJS/QuickJS) e `youtube_proxy.rs` (Range mp4 + rewrite HLS em `127.0.0.1`). `primeView` e `youtubeView` têm teste; o resto das views valide rodando o app.
 
 ## Code style
 

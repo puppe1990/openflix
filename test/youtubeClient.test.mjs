@@ -55,6 +55,24 @@ test('hydrateYouTube no preview guarda o trilho chrome e publica o erro', async 
   assert.match(state.errorText, /youtube recusou: recebido preview web, esperado app Tauri/)
 })
 
+test('hydrateYouTube recusa FEtrending e cai no Início', async () => {
+  const video = fakerYoutubeVideoRenderer({ title: 'Breakdown', videoId: 'abcdefghijk' })
+  const browseIds = []
+  globalThis.__TAURI__ = {
+    core: {
+      invoke: async (command, args) => {
+        assert.equal(command, 'youtube_request')
+        browseIds.push(JSON.parse(args.body).browseId)
+        return JSON.stringify(fakerYoutubeBrowse({ grid: [video], shelf: [] }))
+      },
+    },
+  }
+  await hydrateYouTube('FEtrending')
+  assert.deepEqual(browseIds, ['FEwhat_to_watch'])
+  assert.equal(state.youtube.destKey, 'FEwhat_to_watch')
+  assert.equal(state.errorText, '')
+})
+
 test('hydrateYouTube com Tauri preenche as fileiras do browse', async () => {
   const video = fakerYoutubeVideoRenderer({ title: 'Breakdown', videoId: 'abcdefghijk' })
   globalThis.__TAURI__ = {
@@ -154,6 +172,69 @@ test('loadYoutubePlayback cai no IOS HLS quando ANDROID pede LOGIN_REQUIRED na l
   }
   const playback = await loadYoutubePlayback(videoId)
   assert.deepEqual(clients, ['ANDROID', 'IOS'])
+  assert.equal(playback.kind, 'hls')
+  assert.equal(playback.url, hlsManifestUrl)
+})
+
+test('loadYoutubePlayback cai no WEB quando ANDROID e IOS pedem LOGIN_REQUIRED', async () => {
+  const videoId = fakerYoutubeVideoId()
+  const googlevideo = `https://rr1---sn-host.googlevideo.com/videoplayback?id=${videoId}&itag=18`
+  const clients = []
+  globalThis.__TAURI__ = {
+    core: {
+      invoke: async (command, args) => {
+        assert.equal(command, 'youtube_request')
+        assert.equal(args.path, YOUTUBE_PLAYER)
+        const body = JSON.parse(args.body)
+        clients.push(body.context.client.clientName)
+        if (body.context.client.clientName !== 'WEB') {
+          return JSON.stringify(
+            fakerYoutubePlayer({
+              videoId,
+              status: 'LOGIN_REQUIRED',
+              reason: 'Faça login para confirmar que você não é um bot',
+            }),
+          )
+        }
+        assert.equal(body.contentCheckOk, true)
+        return JSON.stringify(fakerYoutubePlayer({ videoId, googlevideo }))
+      },
+    },
+  }
+  const playback = await loadYoutubePlayback(videoId)
+  assert.deepEqual(clients, ['ANDROID', 'IOS', 'WEB'])
+  assert.equal(playback.kind, 'progressive')
+  assert.equal(playback.url, googlevideo)
+})
+
+test('loadYoutubePlayback cai no WEB HLS quando ANDROID e IOS pedem LOGIN_REQUIRED na live', async () => {
+  const videoId = fakerYoutubeVideoId()
+  const hlsManifestUrl = `https://manifest.googlevideo.com/api/manifest/hls_variant/${videoId}/file/index.m3u8`
+  const clients = []
+  globalThis.__TAURI__ = {
+    core: {
+      invoke: async (command, args) => {
+        assert.equal(command, 'youtube_request')
+        assert.equal(args.path, YOUTUBE_PLAYER)
+        const body = JSON.parse(args.body)
+        clients.push(body.context.client.clientName)
+        if (body.context.client.clientName !== 'WEB') {
+          return JSON.stringify(
+            fakerYoutubePlayer({
+              videoId,
+              status: 'LOGIN_REQUIRED',
+              reason: 'Faça login para confirmar que você não é um bot',
+            }),
+          )
+        }
+        return JSON.stringify(
+          fakerYoutubePlayer({ videoId, url: '', hlsManifestUrl, title: 'AO VIVO' }),
+        )
+      },
+    },
+  }
+  const playback = await loadYoutubePlayback(videoId)
+  assert.deepEqual(clients, ['ANDROID', 'IOS', 'WEB'])
   assert.equal(playback.kind, 'hls')
   assert.equal(playback.url, hlsManifestUrl)
 })

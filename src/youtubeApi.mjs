@@ -38,7 +38,7 @@ export function assertYoutubeRequest(method, path) {
   )
 }
 
-/** WEB no browse/search/guide/next; ANDROID só no /player (itag 18). */
+/** WEB no browse/search/guide/next; /player começa no ANDROID (itag 18). */
 export function youtubeClientKindFor(path) {
   return path === YOUTUBE_PLAYER ? 'android' : 'web'
 }
@@ -99,7 +99,11 @@ export function youtubeIosBody(extra = {}) {
   }
 }
 
-/** ANDROID primeiro (itag 18); IOS se o player pedir login de bot. */
+/** ANDROID primeiro (itag 18); IOS se bot-check; WEB assinado se os dois pedirem LOGIN_REQUIRED. */
 export function youtubePlayerBodies(extra = {}) {
-  return [youtubeAndroidBody(extra), youtubeIosBody(extra)]
+  return [
+    youtubeAndroidBody(extra),
+    youtubeIosBody(extra),
+    youtubeWebBody({ contentCheckOk: true, racyCheckOk: true, ...extra }),
+  ]
 }

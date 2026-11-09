@@ -15,6 +15,15 @@ export function isPlayingVideo(video) {
   return video.paused === false && video.ended !== true
 }
 
+const PIP_KINDS = new Set(['live', 'movies', 'series', 'youtube'])
+const YOUTUBE_PROXY = /^http:\/\/127\.0\.0\.1(?::\d+)?\/video\/[A-Za-z0-9_-]{11}\.(mp4|m3u8)$/
+
+function pipCatalogKind({ catalogKind, selectedItem } = {}) {
+  if (PIP_KINDS.has(catalogKind)) return catalogKind
+  if (YOUTUBE_PROXY.test(String(selectedItem?.url ?? ''))) return 'youtube'
+  return ''
+}
+
 /**
  * Volta do PiP para o player cheio com o item que estava tocando.
  * @param {object} shell
@@ -25,10 +34,10 @@ export function restorePlayerFromPip(shell, snapshot) {
   if (!selectedItem) {
     throw new Error(`selectedItem recusado: recebido ${selectedItem}, esperado item do player`)
   }
-  const catalogKind = snapshot.catalogKind
+  const catalogKind = pipCatalogKind(snapshot)
   if (!catalogKind) {
     throw new Error(
-      `catalogKind recusado: recebido ${catalogKind}, esperado live, movies ou series`,
+      `catalogKind recusado: recebido ${snapshot.catalogKind}, esperado live, movies, series ou youtube`,
     )
   }
   return { ...shell, screen: 'player', catalogKind, selectedItem }

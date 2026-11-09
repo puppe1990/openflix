@@ -104,12 +104,17 @@ test('youtubeIosBody é o cliente IOS do YouTube, não WEB_REMIX', () => {
   assert.notEqual(ios.context.client.clientName, 'WEB_REMIX')
 })
 
-test('youtubePlayerBodies tenta ANDROID e cai no IOS', () => {
+test('youtubePlayerBodies tenta ANDROID, IOS e cai no WEB', () => {
   const videoId = fakerYoutubeVideoId()
   const bodies = youtubePlayerBodies({ videoId })
-  assert.equal(bodies.length, 2)
+  assert.equal(bodies.length, 3)
   assert.equal(bodies[0].context.client.clientName, ANDROID_CLIENT_NAME)
   assert.equal(bodies[1].context.client.clientName, IOS_CLIENT_NAME)
+  assert.equal(bodies[2].context.client.clientName, WEB_CLIENT_NAME)
   assert.equal(bodies[0].videoId, videoId)
   assert.equal(bodies[1].videoId, videoId)
+  assert.equal(bodies[2].videoId, videoId)
+  assert.equal(bodies[2].contentCheckOk, true)
+  assert.equal(bodies[2].racyCheckOk, true)
+  assert.notEqual(bodies[2].context.client.clientName, 'WEB_REMIX')
 })

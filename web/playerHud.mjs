@@ -9,6 +9,8 @@ import {
   playerHudProgress,
   PLAYER_SEEK_DELTA,
   playerSeekTarget,
+  playerVolumeLabel,
+  playerVolumePercent,
 } from '../src/playerHud.mjs'
 import { playerHudShouldHide } from '../src/playerHudIdle.mjs'
 import {
@@ -22,6 +24,9 @@ import {
   hudTitleClass,
   hudToolbarClass,
   hudTopClass,
+  hudVolumeClass,
+  hudVolumeLabelClass,
+  hudVolumeSliderClass,
   liveBadgeClass,
 } from '../src/tvSkin.mjs'
 import { BRAND } from './config.mjs'
@@ -90,7 +95,9 @@ function togglePlay(video) {
 }
 
 function isHudChrome(node) {
-  return Boolean(node?.closest?.('button, input, a, [data-player-progress]'))
+  return Boolean(
+    node?.closest?.('button, input, a, [data-player-progress], [data-player-volume-cluster]'),
+  )
 }
 
 function seekBy(video, delta) {
@@ -182,22 +189,51 @@ function progressBar(video) {
   return bar
 }
 
+function volumeTrackFill(percent) {
+  return `linear-gradient(to right, var(--color-accent) ${percent}%, rgba(255,255,255,0.35) ${percent}%)`
+}
+
+function syncVolumeCluster(root, video) {
+  const slider = root.querySelector('[data-player-volume]')
+  const mute = root.querySelector('[data-player-mute]')
+  const label = root.querySelector('[data-player-volume-label]')
+  const silent = video.muted || video.volume === 0
+  const percent = playerVolumePercent({ volume: video.volume, muted: video.muted })
+  if (slider) {
+    slider.value = String(silent ? 0 : video.volume)
+    slider.style.background = volumeTrackFill(percent)
+  }
+  if (mute) {
+    mute.replaceChildren(iconSvg(silent ? ICON_VOLUME_MUTED : ICON_VOLUME, 28))
+    mute.setAttribute('aria-label', silent ? 'Ativar som' : 'Mudo')
+  }
+  if (label) label.textContent = playerVolumeLabel({ volume: video.volume, muted: video.muted })
+}
+
 function volumeControl(video) {
-  const wrap = el('div', 'pointer-events-auto flex shrink-0 items-center gap-2')
+  const wrap = el('div', hudVolumeClass())
+  wrap.dataset.playerVolumeCluster = '1'
   const mute = iconButton(ICON_VOLUME, 'Mudo')
   mute.dataset.playerMute = '1'
-  mute.addEventListener('click', () => applyPlayerMediaAction(video, 'mute'))
-  const slider = el('input', 'h-8 w-24 shrink-0 cursor-pointer accent-accent')
+  mute.addEventListener('click', () => {
+    applyPlayerMediaAction(video, 'mute')
+    syncVolumeCluster(wrap, video)
+  })
+  const slider = el('input', hudVolumeSliderClass())
   slider.type = 'range'
   slider.min = '0'
   slider.max = '1'
   slider.step = '0.05'
   slider.dataset.playerVolume = '1'
+  slider.setAttribute('aria-label', 'Volume')
   slider.addEventListener('input', () => {
     video.volume = Number(slider.value)
     video.muted = video.volume === 0
+    syncVolumeCluster(wrap, video)
   })
-  wrap.append(mute, slider)
+  const label = el('span', hudVolumeLabelClass(), '100%')
+  label.dataset.playerVolumeLabel = '1'
+  wrap.append(mute, slider, label)
   return wrap
 }
 
@@ -207,7 +243,6 @@ function toolbar(opts) {
   const actions = opts.actions ?? {}
   if (actions.goLive) bar.append(actions.goLive)
   if (actions.sidecar) bar.append(actions.sidecar)
-  if (actions.prime) bar.append(actions.prime)
   const rate = el('button', `${hudIconBtnClass()} min-w-12 font-sans text-[13px] font-bold`, '1.0x')
   rate.type = 'button'
   rate.dataset.playerRate = '1'
@@ -328,13 +363,7 @@ function paintTitle(overlay, item, chrome, qualityLabel) {
 }
 
 function paintVolume(overlay, video) {
-  const slider = overlay.querySelector('[data-player-volume]')
-  if (slider) slider.value = String(video.muted ? 0 : video.volume)
-  const mute = overlay.querySelector('[data-player-mute]')
-  if (!mute) return
-  const silent = video.muted || video.volume === 0
-  mute.replaceChildren(iconSvg(silent ? ICON_VOLUME_MUTED : ICON_VOLUME, 22))
-  mute.setAttribute('aria-label', silent ? 'Ativar som' : 'Mudo')
+  syncVolumeCluster(overlay, video)
 }
 
 function wireHud(frame, video) {

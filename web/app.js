@@ -47,7 +47,8 @@ import {
 } from './session.mjs'
 import { transitionTo } from './screenFlow.mjs'
 import { setRedraw, state } from './state.mjs'
-import { loadStores, playlistStore } from './stores.mjs'
+import { loadStores, playlistStore, themeStore } from './stores.mjs'
+import { wireThemeToggle } from './themeView.mjs'
 
 setRedraw(renderAll)
 
@@ -276,6 +277,11 @@ async function boot() {
     if (button) void openSavedPlaylist(button.dataset.playlistId)
   })
   await loadStores()
+  wireThemeToggle({
+    store: themeStore,
+    button: byId('theme'),
+    root: document.documentElement,
+  })
   if (await bootSaved()) return
   if (await bootSeedLists()) return
   if (await bootSeed()) return

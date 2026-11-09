@@ -116,6 +116,10 @@ export function ghostClass() {
   return 'inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 bg-row px-4 py-2 font-sans text-[clamp(14px,1vw,16px)] font-bold text-ink md:px-5 md:py-2.5'
 }
 
+export function themeToggleClass() {
+  return 'inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-row text-ink ring-1 ring-ink/20'
+}
+
 export function qualityPanelClass() {
   return 'absolute right-4 bottom-24 z-20 flex w-72 max-h-[70%] flex-col overflow-hidden rounded-lg bg-panel py-1 ring-1 ring-white/10'
 }
@@ -158,6 +162,18 @@ export function hudClockClass() {
 
 export function hudNextClass() {
   return 'inline-flex cursor-pointer items-center gap-2 rounded-full bg-black/65 px-4 py-2 font-sans text-[14px] font-bold text-white ring-1 ring-white/15'
+}
+
+export function hudVolumeClass() {
+  return 'pointer-events-auto flex shrink-0 items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 ring-1 ring-white/20'
+}
+
+export function hudVolumeSliderClass() {
+  return 'h-2 w-36 shrink-0 cursor-pointer appearance-none rounded-full bg-white/40'
+}
+
+export function hudVolumeLabelClass() {
+  return 'min-w-10 font-sans text-[13px] font-bold tabular-nums text-white'
 }
 
 export function qualityListClass() {

@@ -9,7 +9,8 @@ export const YOUTUBE_CHROME_DESTS = [
   YOUTUBE_HOME_DEST,
   { key: 'FEsubscriptions', label: 'Inscrições', group: 'YouTube' },
   { key: 'FEhistory', label: 'Histórico', group: 'YouTube' },
-  { key: 'FEtrending', label: 'Em alta', group: 'YouTube' },
+  // YouTube retirou FEtrending (jul/2025): WEB browse devolve 400 INVALID_ARGUMENT.
+  { key: 'FElibrary', label: 'Biblioteca', group: 'YouTube' },
 ]
 
 const DEST_LABEL = YOUTUBE_CHROME_DESTS.map((dest) => dest.key)

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, test } from 'node:test'
 import { JSDOM } from 'jsdom'
-import { faker } from './factories.mjs'
+import { faker, fakerYoutubeVideoId } from './factories.mjs'
 import { createTvShell } from '../src/tvShell.mjs'
 
 const HLS_TYPE = 'application/vnd.apple.mpegurl'
@@ -42,7 +42,6 @@ const { renderPlayer, resetPlayerMedia, setHlsEngine } = await import('../web/pl
 const { togglePlayerFullscreen } = await import('../web/fullscreen.mjs')
 const { hidePlayerHudIfIdle } = await import('../web/playerHud.mjs')
 const { favStore, historyStore } = await import('../web/stores.mjs')
-const { PRIME_SCREEN_EVENT } = await import('../web/primeVideo.mjs')
 const originalFetch = globalThis.fetch
 
 beforeEach(() => {
@@ -170,6 +169,25 @@ test('slider de volume altera o vídeo e não some no flex', () => {
   assert.equal(video.muted, false)
 })
 
+test('HUD de volume mostra pílula, trilha gorda e percentual', () => {
+  openFla()
+  renderPlayer()
+  const cluster = document.querySelector('[data-player-volume-cluster]')
+  assert.ok(cluster)
+  assert.match(cluster.className, /rounded-full/)
+  assert.match(cluster.className, /bg-black\/70/)
+  const slider = document.querySelector('[data-player-volume]')
+  assert.match(slider.className, /appearance-none/)
+  assert.match(slider.className, /w-36/)
+  const mute = document.querySelector('[data-player-mute] svg')
+  assert.equal(mute.getAttribute('width'), '28')
+  const label = document.querySelector('[data-player-volume-label]')
+  assert.equal(label.textContent, '100%')
+  slider.value = '0.4'
+  slider.dispatchEvent(new dom.window.Event('input'))
+  assert.equal(label.textContent, '40%')
+})
+
 test('ícone de volume silencia o vídeo', () => {
   openFla()
   renderPlayer()
@@ -279,18 +297,11 @@ test('no Tauri o quadro tem Abrir no player no topo', () => {
   assert.match(button.textContent, /Abrir no player/)
 })
 
-test('player tem atalho Prime Video que leva para a aba Prime', () => {
-  const seen = []
-  const listener = () => seen.push('prime')
-  document.addEventListener(PRIME_SCREEN_EVENT, listener)
+test('player não mostra atalho Prime Video no quadro', () => {
   openFla()
   renderPlayer()
-  const button = document.querySelector('#player-frame [data-prime-video]')
-  assert.ok(button)
-  assert.match(button.textContent, /Prime Video/)
-  button.click()
-  document.removeEventListener(PRIME_SCREEN_EVENT, listener)
-  assert.deepEqual(seen, ['prime'])
+  assert.equal(document.querySelector('#player-frame [data-prime-video]'), null)
+  assert.doesNotMatch(document.querySelector('#player-frame')?.textContent ?? '', /Prime Video/)
 })
 
 test('F liga o teatro pela API de tela cheia', async () => {
@@ -502,6 +513,43 @@ test('clicar no PiP depois da home zerada restaura o item que estava tocando', (
   assert.equal(state.shell.catalogKind, 'live')
   assert.equal(state.shell.selectedItem.id, 1658633)
   assert.equal(document.querySelector('#player video'), video)
+})
+
+test('clicar no PiP do YouTube volta ao player mesmo sem catalogKind no shell', () => {
+  const videoId = fakerYoutubeVideoId()
+  const url = `http://127.0.0.1:43111/video/${videoId}.mp4`
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: null,
+    selectedItem: { id: videoId, name: faker.lorem.words(3), url },
+  }
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  assert.equal(document.querySelector('#player video'), video)
+  state.redraw = renderPlayer
+  leavePlayer('youtube')
+  assert.equal(document.getElementById('pip').hidden, false)
+  document.getElementById('pip').click()
+  assert.equal(state.shell.screen, 'player')
+  assert.equal(state.shell.catalogKind, 'youtube')
+  assert.equal(state.shell.selectedItem.id, videoId)
+  assert.equal(document.querySelector('#player video'), video)
+  assert.equal(document.getElementById('pip').hidden, true)
+  assert.equal(document.getElementById('player').hidden, false)
+})
+
+test('player do YouTube não grava histórico XC', () => {
+  const videoId = fakerYoutubeVideoId()
+  const url = `http://127.0.0.1:43111/video/${videoId}.mp4`
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: 'youtube',
+    selectedItem: { id: videoId, name: faker.lorem.words(3), url },
+  }
+  renderPlayer()
+  assert.equal(historyStore.list().length, 0)
 })
 
 test('dar play em outro item fecha o PiP e troca o stream', () => {

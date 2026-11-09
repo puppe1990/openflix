@@ -42,7 +42,7 @@ export async function loadYoutubeProxyBase() {
   return requireShell()('youtube_proxy_base')
 }
 
-/** ANDROID `/player` (itag 18); IOS se vier LOGIN_REQUIRED de bot. */
+/** ANDROID `/player` (itag 18); IOS se LOGIN_REQUIRED; WEB assinado se os dois recusarem. */
 export async function loadYoutubePlayback(videoId) {
   let lastError
   for (const body of youtubePlayerBodies({ videoId })) {

@@ -18,7 +18,6 @@ import {
 } from './fullscreen.mjs'
 import { ICON_HEART, iconSvg } from './icons.mjs'
 import { mountPlayerHud, paintPlayerHud, resetPlayerHudIdle } from './playerHud.mjs'
-import { openPrimeVideo } from './primeVideo.mjs'
 import {
   emptyQualityState,
   HLS_QUALITY_AUTO,
@@ -148,7 +147,7 @@ function hidePip() {
 }
 
 function restoreFromPip() {
-  if (!held.item || !held.catalogKind) return
+  if (!held.item) return
   void transitionTo(
     restorePlayerFromPip(state.shell, {
       catalogKind: held.catalogKind,
@@ -187,7 +186,7 @@ function streamIdOf(item) {
 
 function rememberWatch(item) {
   const kind = state.shell.catalogKind
-  if (!item?.id || !kind) return
+  if (!item?.id || (kind !== 'live' && kind !== 'movies' && kind !== 'series')) return
   historyStore.remember(watchCardFromItem(item, kind))
 }
 
@@ -373,7 +372,6 @@ function playerFrame(video, item) {
     actions: {
       fav: favButton(),
       sidecar: tauriInvoke() ? sidecarButton() : null,
-      prime: primeVideoButton(),
       goLive: kind === 'live' ? goLiveButton() : null,
     },
     onBack: () => void transitionTo(goBack(state.shell)),
@@ -421,17 +419,6 @@ function sidecarButton(extraClass = '') {
   button.dataset.sidecar = '1'
   button.textContent = 'Abrir no player'
   button.addEventListener('click', () => openSidecar(held.url || playUrl()))
-  return button
-}
-
-function primeVideoButton(extraClass = '') {
-  const className = extraClass ? `${ghostClass()} ${extraClass}` : ghostClass()
-  const button = el('button', className)
-  button.type = 'button'
-  button.dataset.primeVideo = '1'
-  button.title = 'Abrir o Prime Video dentro do OpenFlix (login na Amazon)'
-  button.textContent = 'Prime Video'
-  button.addEventListener('click', openPrimeVideo)
   return button
 }
 
