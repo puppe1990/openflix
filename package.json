@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Xtream/M3U player for your own playlists (JS domain, TDD). No VPN, MAC cloud, or third-party streams.",
+  "description": "10-foot Tauri player for your own Xtream/M3U, plus Prime Video and YouTube. No VPN, MAC cloud, or third-party streams.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/puppe1990/openflix.git"
