@@ -6,13 +6,13 @@ async function readRepo(relative) {
   return readFile(new URL(`../${relative}`, import.meta.url), 'utf8')
 }
 
-test('versão 0.2.0 é a mesma no npm, Cargo e Tauri', async () => {
+test('versão npm, Cargo e Tauri são a mesma', async () => {
   const pkg = JSON.parse(await readRepo('package.json'))
   const tauri = JSON.parse(await readRepo('src-tauri/tauri.conf.json'))
   const cargo = await readRepo('src-tauri/Cargo.toml')
-  assert.equal(pkg.version, '0.2.0')
-  assert.equal(tauri.version, '0.2.0')
-  assert.match(cargo, /^version = "0\.2\.0"$/m)
+  assert.match(pkg.version, /^\d+\.\d+\.\d+$/)
+  assert.equal(tauri.version, pkg.version)
+  assert.match(cargo, new RegExp(`^version = "${pkg.version.replaceAll('.', '\\.')}"$`, 'm'))
 })
 
 test('bundle Tauri gera instaladores e o frontend dist', async () => {

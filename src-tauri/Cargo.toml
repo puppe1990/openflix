@@ -1,6 +1,6 @@
 [package]
 name = "life-tv"
-version = "0.2.0"
+version = "0.3.0"
 description = "Player 10-foot de playlists próprias Xtream/M3U"
 edition = "2021"
 

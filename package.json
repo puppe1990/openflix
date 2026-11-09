@@ -1,6 +1,6 @@
 {
   "name": "life-tv",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Xtream/M3U player for your own playlists (JS domain, TDD). No VPN, MAC cloud, or third-party streams.",
