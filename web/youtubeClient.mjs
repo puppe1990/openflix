@@ -7,7 +7,7 @@ import {
   youtubeWebBody,
 } from '../src/youtubeApi.mjs'
 import { parseYoutubeBrowse } from '../src/youtubeBrowse.mjs'
-import { pickYoutubePlayback } from '../src/youtubePlayer.mjs'
+import { pickPreferredYoutubePlayback } from '../src/youtubePlayer.mjs'
 import { YOUTUBE_CHROME_DESTS, youtubeDest } from '../src/youtubeNav.mjs'
 import { parseYoutubeSearch } from '../src/youtubeSearch.mjs'
 import { tauriInvoke } from './bridge.mjs'
@@ -42,17 +42,31 @@ export async function loadYoutubeProxyBase() {
   return requireShell()('youtube_proxy_base')
 }
 
-/** ANDROID `/player` (itag 18); IOS se LOGIN_REQUIRED; WEB assinado se os dois recusarem. */
+/** ANDROID `/player`; se só vier itag 18, tenta IOS/WEB atrás do HLS (menu Qualidade). */
 export async function loadYoutubePlayback(videoId) {
+  const payloads = []
   let lastError
   for (const body of youtubePlayerBodies({ videoId })) {
     try {
-      return pickYoutubePlayback(await youtubeRequest(YOUTUBE_PLAYER, body))
+      payloads.push(await youtubeRequest(YOUTUBE_PLAYER, body))
+    } catch (error) {
+      lastError = error
+      continue
+    }
+    try {
+      const picked = pickPreferredYoutubePlayback(payloads)
+      if (picked.kind === 'hls') return picked
+      const clientName = body.context.client.clientName
+      if (clientName === 'IOS' || clientName === 'WEB') return picked
     } catch (error) {
       lastError = error
     }
   }
-  throw lastError
+  try {
+    return pickPreferredYoutubePlayback(payloads)
+  } catch (error) {
+    throw lastError ?? error
+  }
 }
 
 async function fillBrowse(dest) {

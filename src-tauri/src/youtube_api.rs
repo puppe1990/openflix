@@ -343,18 +343,35 @@ pub fn resolve_progressive_url(cookie: Option<&str>, video_id: &str) -> Result<S
     })
 }
 
-/// Resolve `hlsManifestUrl` da live (sem itag 18).
+#[cfg(test)]
+fn first_hls_url<'a>(payloads: impl IntoIterator<Item = &'a serde_json::Value>) -> Option<String> {
+    payloads.into_iter().find_map(hls_manifest_url)
+}
+
+/// Resolve `hlsManifestUrl` (ANDROID, depois IOS/WEB — VOD ANDROID só tem itag 18).
 pub fn resolve_hls_url(cookie: Option<&str>, video_id: &str) -> Result<String, String> {
-    hls_manifest_url(&player_payload(cookie, video_id)?).ok_or_else(|| {
-        format!("player do youtube recusado: recebido nenhum mp4 com url, esperado itag 18 ou hlsManifestUrl para {video_id}")
-    })
+    let err = format!(
+        "player do youtube recusado: recebido nenhum mp4 com url, esperado itag 18 ou hlsManifestUrl para {video_id}"
+    );
+    for (name, body) in [
+        ("ANDROID", android_player_body(video_id)),
+        ("IOS", ios_player_body(video_id)),
+        ("WEB", web_player_body(video_id)),
+    ] {
+        if let Ok(payload) = fetch_player_payload(cookie, name, body) {
+            if let Some(url) = hls_manifest_url(&payload) {
+                return Ok(url);
+            }
+        }
+    }
+    Err(err)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        allowed, choose_player_payload, hls_manifest_url, innertube_user_agent, muxed_url,
-        playable_ok, sapisid_from, sapisid_hash, ANDROID_USER_AGENT,
+        allowed, choose_player_payload, first_hls_url, hls_manifest_url, innertube_user_agent,
+        muxed_url, playable_ok, sapisid_from, sapisid_hash, ANDROID_USER_AGENT,
     };
 
     #[test]
@@ -464,6 +481,30 @@ mod tests {
             "streamingData": { "formats": [] }
         });
         assert_eq!(muxed_url(&blocked), None);
+    }
+
+    #[test]
+    fn first_hls_url_prefere_ios_quando_android_so_tem_itag_18() {
+        let android = serde_json::json!({
+            "playabilityStatus": { "status": "OK" },
+            "streamingData": {
+                "formats": [{
+                    "itag": 18,
+                    "mimeType": "video/mp4",
+                    "url": "https://rr1---sn.googlevideo.com/videoplayback?id=x&itag=18"
+                }]
+            }
+        });
+        let ios = serde_json::json!({
+            "playabilityStatus": { "status": "OK" },
+            "streamingData": {
+                "hlsManifestUrl": "https://manifest.googlevideo.com/api/manifest/hls_variant/x/file/index.m3u8"
+            }
+        });
+        assert_eq!(first_hls_url([&android]), None);
+        assert!(first_hls_url([&android, &ios])
+            .unwrap()
+            .contains("manifest.googlevideo.com"));
     }
 
     #[test]

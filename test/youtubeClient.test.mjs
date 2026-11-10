@@ -114,6 +114,33 @@ test('loadYoutubePlayback escolhe HLS na live sem itag 18', async () => {
   assert.equal(playback.url, hlsManifestUrl)
 })
 
+test('loadYoutubePlayback prefere HLS do IOS quando o ANDROID só tem itag 18', async () => {
+  const videoId = fakerYoutubeVideoId()
+  const googlevideo = `https://rr1---sn-host.googlevideo.com/videoplayback?id=${videoId}&itag=18`
+  const hlsManifestUrl = `https://manifest.googlevideo.com/api/manifest/hls_variant/${videoId}/file/index.m3u8`
+  const clients = []
+  globalThis.__TAURI__ = {
+    core: {
+      invoke: async (command, args) => {
+        assert.equal(command, 'youtube_request')
+        assert.equal(args.path, YOUTUBE_PLAYER)
+        const body = JSON.parse(args.body)
+        clients.push(body.context.client.clientName)
+        if (body.context.client.clientName === 'ANDROID') {
+          return JSON.stringify(fakerYoutubePlayer({ videoId, googlevideo }))
+        }
+        return JSON.stringify(
+          fakerYoutubePlayer({ videoId, url: '', hlsManifestUrl, title: 'AO VIVO' }),
+        )
+      },
+    },
+  }
+  const playback = await loadYoutubePlayback(videoId)
+  assert.deepEqual(clients, ['ANDROID', 'IOS'])
+  assert.equal(playback.kind, 'hls')
+  assert.equal(playback.url, hlsManifestUrl)
+})
+
 test('loadYoutubePlayback cai no IOS quando ANDROID pede LOGIN_REQUIRED', async () => {
   const videoId = fakerYoutubeVideoId()
   const googlevideo = `https://rr1---sn-host.googlevideo.com/videoplayback?id=${videoId}&itag=18`

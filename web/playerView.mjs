@@ -26,6 +26,11 @@ import {
   resetQualityState,
   syncPlayerQuality,
 } from './playerQuality.mjs'
+import {
+  closePlayerRate as closeRatePanel,
+  paintPlayerRate,
+  togglePlayerRate,
+} from './playerRate.mjs'
 import { ensureEpg, ensureSeriesUrl, epgBlock } from './playerEpg.mjs'
 import { playUrl } from './session.mjs'
 import { transitionTo } from './screenFlow.mjs'
@@ -48,6 +53,7 @@ function emptyHeld() {
     frame: null,
     item: null,
     catalogKind: null,
+    rateOpen: false,
     ...emptyQualityState(),
   }
 }
@@ -75,6 +81,7 @@ function paintQuality() {
     selectedId: held.qualityId,
     open: held.qualityOpen,
     onToggle() {
+      held.rateOpen = false
       held.qualityOpen = !held.qualityOpen
       paintQuality()
     },
@@ -84,7 +91,24 @@ function paintQuality() {
       paintQuality()
     },
   })
+  paintRate()
   paintHud()
+}
+
+function paintRate() {
+  paintPlayerRate(held, () => {
+    paintRate()
+    paintHud()
+  })
+}
+
+function toggleRate() {
+  togglePlayerRate(held, paintQuality)
+}
+
+/** Fecha a caixa de velocidade; true se consumiu o Escape. */
+export function closePlayerRate() {
+  return closeRatePanel(held, paintRate)
 }
 
 function applyQuality(id) {
@@ -128,6 +152,7 @@ async function hydrateAndPaint(url) {
 export function resetPlayerMedia() {
   held.session?.destroy?.()
   held.qualityOpen = false
+  held.rateOpen = false
   paintQuality()
   hidePip()
   resetPlayerHudIdle(held.frame)
@@ -376,6 +401,7 @@ function playerFrame(video, item) {
     },
     onBack: () => void transitionTo(goBack(state.shell)),
     onFullscreen: () => void togglePlayerFullscreen(),
+    onRate: toggleRate,
   })
   return frame
 }
@@ -426,6 +452,7 @@ function leavePlayerScreen() {
   const root = byId('player')
   const playing = playingNow()
   held.qualityOpen = false
+  held.rateOpen = false
   paintQuality()
   void exitPlayerFullscreen()
   if (shouldPictureInPicture({ screen: state.shell.screen, playing })) {

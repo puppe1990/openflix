@@ -63,6 +63,9 @@ OpenFlix chama de novo com cliente **IOS** (UA Chrome, `deviceModel`
 `iPhone16,2`) e, se o IOS também vier `LOGIN_REQUIRED` com `logged_in=0`,
 com cliente **WEB** assinado (SAPISIDHASH, origem `https://www.youtube.com`).
 WEB VOD logado devolve itag 18 com url direta; live devolve `hlsManifestUrl`.
+O OpenFlix **prefere HLS**: se o ANDROID só tem itag 18, tenta o IOS (e o WEB) atrás de
+`hlsManifestUrl` para o menu Qualidade (1080p60 HD … 144p + Automático). O proxy
+`/video/{id}.m3u8` resolve o manifesto na mesma ordem.
 SAPISIDHASH no ANDROID/IOS é `INVALID_ARGUMENT` com sessão. O proxy local `http://127.0.0.1:{port}/video/{id}.mp4`
 encaminha `Range` para o googlevideo (não baixa o arquivo inteiro). Live aponta
 para `/video/{id}.m3u8`; o proxy reescreve a playlist para `/ytg?u=` e o player

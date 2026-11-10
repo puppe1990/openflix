@@ -87,9 +87,11 @@ test('playerHudChrome de série só mostra próximo e abertura com dado real', (
   assert.equal(filled.nextEpisode, true)
 })
 
-test('playbackRateLabel pinta 1.0x', () => {
+test('playbackRateLabel pinta 1.0x e 0.25x', () => {
   assert.equal(playbackRateLabel(1), '1.0x')
   assert.equal(playbackRateLabel(1.5), '1.5x')
+  assert.equal(playbackRateLabel(0.25), '0.25x')
+  assert.equal(playbackRateLabel(1.25), '1.25x')
 })
 
 test('playerVolumePercent converte 0..1 em 0..100', () => {

@@ -12,13 +12,15 @@ export function cinemaBrandLabel(brand) {
   return `${name.toUpperCase()} CINEMA`
 }
 
-/** Rótulo 1.0x / 1.5x da velocidade. */
+/** Rótulo 1.0x / 0.25x da velocidade. */
 export function playbackRateLabel(rate) {
   const n = Number(rate)
   if (!Number.isFinite(n) || n <= 0) {
     throw new Error(`velocidade recusada: recebido ${JSON.stringify(rate)}, esperado número > 0`)
   }
-  return `${n.toFixed(1)}x`
+  const hundredths = Math.round(n * 100)
+  if (hundredths % 10 === 0) return `${(hundredths / 100).toFixed(1)}x`
+  return `${hundredths / 100}x`
 }
 
 /** Próxima velocidade do ciclo 1 → 1.25 → 1.5 → 2. */
