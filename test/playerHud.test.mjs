@@ -68,6 +68,19 @@ test('playerHudChrome de ao vivo esconde pulo e abertura', () => {
   assert.equal(chrome.badge, 'Ao vivo')
 })
 
+test('playerHudChrome de Prime ao vivo usa o mesmo bloqueio do canal linear', () => {
+  const chrome = playerHudChrome({
+    catalogKind: 'prime',
+    live: true,
+    duration: 5400,
+  })
+  assert.equal(chrome.isLive, true)
+  assert.equal(chrome.seekable, false)
+  assert.equal(chrome.canSkip, false)
+  assert.equal(chrome.canRate, false)
+  assert.equal(chrome.badge, 'Ao vivo')
+})
+
 test('playerHudChrome de série só mostra próximo e abertura com dado real', () => {
   const empty = playerHudChrome({
     catalogKind: 'series',

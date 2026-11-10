@@ -654,9 +654,9 @@ Mesma família, para **canal linear** (Canais Globo/SporTV). Corpo:
   challenge não há licença; sem licença o CENC não decifra.
 - **`sessionToken`** do PES — JWE `stokn+jws` rotacionado a cada callback.
 
-Ou seja: o caminho de reproduce é do player oficial. Um cliente de terceiros que quisesse
-tocar o conteúdo teria que reproduzir o envelope, o handoff e o licenciamento — isto é,
-clonar o DRM da Amazon, o que está fora do escopo deste projeto (e dos termos de uso).
+Ou seja: esses blobs não são deriváveis de fora. A única forma de obtê-los é **rodar o
+player oficial** e reusar a sessão que ele mesmo mintou. É o que o OpenFlix faz (abaixo):
+nada de envelope/chave forjados, nada de clonar o DRM.
 
 ## 10. Como o OpenFlix usa isso hoje
 
@@ -691,12 +691,34 @@ Catálogo nativo 10-foot (sem `#primeStage`; o player oficial entra num webview 
   webview (`Webview::cookies()`), mantém só domínio `primevideo.com` (nada de `.amazon.com`)
   e grava o header no cofre 0600. É o mesmo cookie que o catálogo nativo usa. `Sair` limpa o
   webview (`clear_all_browsing_data`) e apaga a entrada do cofre.
-- **Player:** `Assistir no app` abre `https://www.primevideo.com/detail/{titleId}` na mesma
-  janela (`prime_open_player`, allowlist de host https). O player oficial da Amazon toca o
-  DASH/CENC dentro do OpenFlix; `Abrir no navegador` é o fallback (`prime_open_external`).
-- **Playback próprio:** fora de escopo. O OpenFlix não pede PRS, PES nem licença Widevine,
-  não monta `playbackEnvelope` e não abre `sessionHandoffToken` — esse caminho exigiria
-  clonar o DRM da Amazon, o que continua vetado neste projeto.
+- **Player (fallback):** `Assistir no app` abre `https://www.primevideo.com/detail/{titleId}`
+  num webview filho (`prime-pane`) sobre a tela (`prime_open_player`, allowlist de host
+  https). O player oficial da Amazon toca o DASH/CENC dentro do OpenFlix;
+  `Abrir no navegador` é o fallback (`prime_open_external`).
+- **Player nativo (macOS/Tauri):** o mesmo painel oficial é aberto, mas um hook injetado
+  antes da página (`prime_oracle_hook.js`) observa as chamadas do player da Amazon e
+  reporta o **PRS** (`playbackEnvelope` + `sessionHandoffToken` + certificado FairPlay) e a
+  **licença** (`GetFairPlayLicense`, com `titleId`) para um servidor local do app
+  (`prime_oracle.rs`, `127.0.0.1`). O painel é fechado depois da captura; se a captura
+  falhar, o painel continua tocando. Detalhe: o painel gasta o handoff dele na licença
+  dele, então `prime_session.rs` (`prime_session_mint`) repete o PRS oficial com o mesmo
+  envelope para cunhar handoff, certificado e URLs próprios antes da licença nativa.
+- **FairPlay do WKWebView:** o build do webview toca pelo caminho **legado**
+  (`new WebKitMediaKeys('com.apple.fps')` + `video.webkitSetMediaKeys(keys)`), não pelo EME
+  padrão: o player oficial fica com `webkitKeys: true` e `mediaKeys: null`. No
+  `webkitneedkey`, o OpenFlix cria `keys.createSession('video/mp4', initData)` com
+  `initData` = `[len][skd://key em UTF-16LE]` + `[len][mesmo key]` + `[len][certificado DER]`
+  — o `skd://` cru do evento (88 bytes) é recusado com `webkitkeyerror`. A sessão entrega o
+  SPC (≈6 KB) por `onwebkitkeymessage` (propriedade, não `addEventListener`); o shell POSTa
+  no endpoint oficial, devolve o CKC (≈1 KB) e `session.update()` libera o decode.
+- **VOD e live/linear:** o parser aceita `GetVodPlaybackResources`,
+  `GetLivePlaybackResources` e `GetLiveLinearPlaybackResources`, e a licença aceita
+  `drm-vod`, `drm-live` e `drm-linear` (todos `GetFairPlayLicense` no `atv-ps`). No player,
+  live não retoma posição salva, não grava resume e mostra o selo **Ao vivo** no HUD.
+  VOD validado de ponta a ponta em 10/11/2026 (PRS → mint → licença → decode → áudio
+  pt-BR). Live/linear usa o mesmo caminho e o mesmo par PRS+licença; a validação com um
+  evento no ar fica para o primeiro evento ao vivo da conta (o catálogo de Esportes só
+  tinha eventos `UPCOMING` na janela de teste).
 
 ## 11. Evidências na captura
 

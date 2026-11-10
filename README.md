@@ -54,8 +54,12 @@ Repo: https://github.com/puppe1990/openflix
 - Native 10-foot catalog from the official storefront
   (`GET /api/enrichNav`, `POST /api/getLandingPage`)
 - Sign in through the official Amazon window; session stays in the vault
-- Watch in an official Amazon child webview inside the OpenFlix window
-- Prime DRM (DASH + CENC / Widevine / FairPlay) stays in Amazon's player
+- Native player on macOS: the official pane mints the PRS session and the
+  OpenFlix HUD plays the HLS with the legacy `WebKitMediaKeys` FairPlay path
+- VOD and live/linear share the same captured official session (PRS + license);
+  live skips resume and shows the **Ao vivo** badge
+- Any failure falls back to the official Amazon child webview inside the
+  OpenFlix window
 
 ### YouTube
 
@@ -91,7 +95,8 @@ build stays `npm run tauri:app` → `target-app/OpenFlix.app`.
 - Portal → `get.php` / `player_api.php` / `live|movie|series`
 - Local XC or M3U playlist
 - Catalog by category, M3U parse, adaptive MIME, resume, favorite, and lock
-- Official Prime Video catalog + Amazon's own player in-app
+- Official Prime Video catalog + native player (official Amazon pane session,
+  VOD and live) with the official pane as fallback
 - Official YouTube catalog + playback through the local media proxy
 
 ## Out of scope
@@ -99,5 +104,6 @@ build stays `npm run tauri:app` → `target-app/OpenFlix.app`.
 - MAC phone-home, `libhax` / VPN, key dumps, streams that are not from the
   user's playlist
 - Reusing art from the reference APK in the icon or the header
-- Cloning Widevine/FairPlay or Amazon playback envelopes
+- Cloning Widevine/FairPlay or Amazon playback envelopes (the native player
+  reuses the session the official pane mints; it never forges one)
 - YouTube Music WEB_REMIX (that's [OurTube Music](https://github.com/puppe1990/ourtube-music))
