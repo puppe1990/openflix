@@ -6,7 +6,7 @@ import { byId } from './dom.mjs'
 import { tauriListen } from './bridge.mjs'
 import { exitPlayerFullscreen, isPlayerFullscreen, togglePlayerFullscreen } from './fullscreen.mjs'
 import { Hls } from './vendor/hls.mjs'
-import { closePlayerQuality, setHlsEngine } from './playerView.mjs'
+import { closePlayerQuality, closePlayerRate, setHlsEngine } from './playerView.mjs'
 import {
   readPrimeCookie,
   savePrimeCookie,
@@ -78,7 +78,10 @@ function goToScreen({ screen, catalogKind = null }) {
 
 async function onKey(event) {
   if (event.target.matches('input, textarea') && event.key !== 'Escape') return
-  if ((event.key === 'Escape' || event.key === 'Backspace') && closePlayerQuality()) {
+  if (
+    (event.key === 'Escape' || event.key === 'Backspace') &&
+    (closePlayerRate() || closePlayerQuality())
+  ) {
     event.preventDefault()
     return
   }

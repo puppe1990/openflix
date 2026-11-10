@@ -55,13 +55,9 @@ export function pickMuxedProgressive(payload) {
   }
 }
 
-/** Progressive itag 18, ou HLS da live (`hlsManifestUrl`) quando não há mp4 muxed. */
+/** HLS (`hlsManifestUrl`) na frente do itag 18 — o menu Qualidade precisa dos STREAM-INF. */
 export function pickYoutubePlayback(payload) {
   const videoId = assertPlayable(payload)
-  const format = muxedFormat(payload)
-  if (format) {
-    return { kind: 'progressive', ...pickMuxedProgressive(payload) }
-  }
   const url = hlsManifestUrl(payload)
   if (url) {
     return {
@@ -71,7 +67,38 @@ export function pickYoutubePlayback(payload) {
       url,
     }
   }
+  const format = muxedFormat(payload)
+  if (format) {
+    return { kind: 'progressive', ...pickMuxedProgressive(payload) }
+  }
   throw new Error(
     `player do youtube recusado: recebido nenhum mp4 com url, esperado itag 18 ou hlsManifestUrl para ${videoId}`,
+  )
+}
+
+/** Entre vários /player, fica com o HLS se algum cliente tiver. */
+export function pickPreferredYoutubePlayback(payloads) {
+  if (!Array.isArray(payloads)) {
+    throw new Error(
+      `player do youtube recusado: recebido ${typeof payloads}, esperado lista de /player`,
+    )
+  }
+  const found = []
+  let lastError
+  for (const payload of payloads) {
+    try {
+      found.push(pickYoutubePlayback(payload))
+    } catch (error) {
+      lastError = error
+    }
+  }
+  const hls = found.find((item) => item.kind === 'hls')
+  if (hls) return hls
+  if (found[0]) return found[0]
+  throw (
+    lastError ??
+    new Error(
+      'player do youtube recusado: recebido nenhum /player, esperado itag 18 ou hlsManifestUrl',
+    )
   )
 }

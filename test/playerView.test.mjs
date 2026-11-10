@@ -119,6 +119,56 @@ test('player de filme mostra pulo de 10s e velocidade', () => {
   assert.match(document.querySelector('[data-player-clock]').textContent, /28:45 \/ 54:20/)
 })
 
+function openMoviePlayer() {
+  const url = `http://${faker.internet.domainName()}/movie/user/pass/9.mp4`
+  state.client = { moviePlayUrl: () => url }
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: 'movies',
+    selectedItem: { id: 9, name: faker.lorem.words(2), extension: 'mp4' },
+  }
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  Object.defineProperty(video, 'duration', { configurable: true, get: () => 3260 })
+  video.dispatchEvent(new dom.window.Event('loadedmetadata'))
+  return video
+}
+
+test('clique na velocidade abre a caixa para colocar o valor', () => {
+  const video = openMoviePlayer()
+  document.querySelector('[data-player-rate]').click()
+  const panel = document.querySelector('[data-rate-panel]')
+  assert.ok(panel)
+  assert.ok(panel.querySelector('[data-rate-input]'))
+  const labels = [...panel.querySelectorAll('[data-rate-option]')].map((node) =>
+    node.textContent.replace('✓', '').trim(),
+  )
+  assert.deepEqual(labels, ['0.25x', '0.5x', '0.75x', '1.0x', '1.25x', '1.5x', '1.75x', '2.0x'])
+  assert.equal(video.playbackRate || 1, 1)
+})
+
+test('digitar 1,5 na caixa aplica 1.5x no vídeo', () => {
+  const video = openMoviePlayer()
+  document.querySelector('[data-player-rate]').click()
+  const input = document.querySelector('[data-rate-input]')
+  input.value = '1,5'
+  document.querySelector('[data-rate-apply]').click()
+  assert.equal(video.playbackRate, 1.5)
+  assert.equal(document.querySelector('[data-rate-panel]'), null)
+  assert.match(document.querySelector('[data-player-rate]').textContent, /1\.5x/)
+})
+
+test('closePlayerRate fecha a caixa de velocidade e devolve true', async () => {
+  openMoviePlayer()
+  document.querySelector('[data-player-rate]').click()
+  assert.ok(document.querySelector('[data-rate-panel]'))
+  const { closePlayerRate } = await import('../web/playerView.mjs')
+  assert.equal(closePlayerRate(), true)
+  assert.equal(document.querySelector('[data-rate-panel]'), null)
+  assert.equal(closePlayerRate(), false)
+})
+
 test('pulo de 10s avança o currentTime do filme', () => {
   const url = `http://${faker.internet.domainName()}/movie/user/pass/9.mp4`
   state.client = { moviePlayUrl: () => url }

@@ -58,19 +58,32 @@ test('pickYoutubePlayback usa HLS quando a live não tem itag 18', () => {
   assert.equal(picked.url, hlsManifestUrl)
 })
 
-test('pickYoutubePlayback prefere mp4 progressivo quando os dois existem', () => {
+test('pickYoutubePlayback prefere HLS quando o payload tem os dois', () => {
   const videoId = fakerYoutubeVideoId()
   const googlevideo = `https://rr1---sn-host.googlevideo.com/videoplayback?id=${videoId}&itag=18`
+  const hlsManifestUrl = `https://manifest.googlevideo.com/api/manifest/hls_variant/${videoId}/file/index.m3u8`
   const picked = pickYoutubePlayback(
     fakerYoutubePlayer({
       videoId,
       googlevideo,
-      hlsManifestUrl: `https://manifest.googlevideo.com/api/manifest/hls_variant/${videoId}/file/index.m3u8`,
+      hlsManifestUrl,
     }),
   )
-  assert.equal(picked.kind, 'progressive')
-  assert.equal(picked.url, googlevideo)
-  assert.equal(picked.itag, 18)
+  assert.equal(picked.kind, 'hls')
+  assert.equal(picked.url, hlsManifestUrl)
+})
+
+test('pickPreferredYoutubePlayback escolhe HLS do IOS mesmo com itag 18 no ANDROID', async () => {
+  const videoId = fakerYoutubeVideoId()
+  const googlevideo = `https://rr1---sn-host.googlevideo.com/videoplayback?id=${videoId}&itag=18`
+  const hlsManifestUrl = `https://manifest.googlevideo.com/api/manifest/hls_variant/${videoId}/file/index.m3u8`
+  const { pickPreferredYoutubePlayback } = await import('../src/youtubePlayer.mjs')
+  const picked = pickPreferredYoutubePlayback([
+    fakerYoutubePlayer({ videoId, googlevideo }),
+    fakerYoutubePlayer({ videoId, url: '', hlsManifestUrl }),
+  ])
+  assert.equal(picked.kind, 'hls')
+  assert.equal(picked.url, hlsManifestUrl)
 })
 
 test('pickYoutubePlayback recusa live sem HLS e sem mp4', () => {

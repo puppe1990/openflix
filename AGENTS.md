@@ -43,6 +43,9 @@ Mapa do Innertube YouTube (WEB catálogo + ANDROID `/player` itag 18, IOS/WEB se
 - `session.mjs` — boot/seed/rotação de portal, catálogo e playlist.
 - `catalogView.mjs` — home, abas e catálogo em duas colunas (categorias | itens).
 - `playerView.mjs` — vídeo, resume, EPG, catch-up, PiP e player externo.
+- `playerHud.mjs` — overlay cinema (play, barra, volume, 1.0x, tela cheia).
+- `playerQuality.mjs` — menu Qualidade HLS (STREAM-INF).
+- `playerRate.mjs` — caixa 10-foot para colocar a velocidade (lista + campo).
 - `primeVideo.mjs` — atalho da aba: dispara o evento que abre a tela Prime.
 - `primeClient.mjs` — GET `/api/enrichNav` e POST `/api/getLandingPage` (Tauri `prime_request` ou fetch). Trilho: Início + Esportes (`home:Sports`) + `categoryGroups`.
 - `primeSession.mjs` — sessão no cofre (`prime_cookie`), sync do webview oficial e logout; sessionStorage no preview.
@@ -50,7 +53,7 @@ Mapa do Innertube YouTube (WEB catálogo + ANDROID `/player` itag 18, IOS/WEB se
 - `primeWindow.mjs` — login na janela oficial: `prime_sign_in`, `prime_open_external` (fallback).
 - `primePane.mjs` — player oficial embutido: webview filho `prime-pane` sobre `#primePaneHost`.
 - `youtubeVideo.mjs` — atalho da aba: dispara o evento que abre a tela YouTube.
-- `youtubeClient.mjs` — POST Innertube (Tauri `youtube_request` só; preview recusa CORS). Trilho: Início / Inscrições / Histórico / Biblioteca (`FEtrending` o YouTube retirou; browse 400).
+- `youtubeClient.mjs` — POST Innertube (Tauri `youtube_request` só; preview recusa CORS). Trilho: Início / Inscrições / Histórico / Biblioteca (`FEtrending` o YouTube retirou; browse 400). `/player` prefere HLS (IOS) quando o ANDROID só devolve itag 18.
 - `youtubeSession.mjs` — sessão no cofre (`youtube_cookie`), sync do webview oficial e logout.
 - `youtubeView.mjs` — catálogo nativo 10-foot: trilho, fileiras, detalhe, `handleYoutubeKey` (Enter toca no player OpenFlix).
 - `youtubeWindow.mjs` — login CookieAuth (OurTube): `youtube_sign_in` + poll `youtube_auth_check` até SAPISID; bind HTTP continue=`www.youtube.com` minta LOGIN_INFO.

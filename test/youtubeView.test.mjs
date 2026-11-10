@@ -107,6 +107,35 @@ test('Assistir no YouTube abre o player com catalogKind youtube', async () => {
   assert.equal(state.shell.selectedItem.url, `http://127.0.0.1:43111/video/${card.videoId}.mp4`)
 })
 
+test('Assistir no YouTube VOD usa HLS do IOS quando o ANDROID só tem itag 18', async () => {
+  const card = state.youtube.rows[0].cards[0]
+  const googlevideo = `https://rr1---sn-host.googlevideo.com/videoplayback?id=${card.videoId}&itag=18`
+  const hlsManifestUrl = `https://manifest.googlevideo.com/api/manifest/hls_variant/${card.videoId}/file/index.m3u8`
+  const clients = []
+  globalThis.__TAURI__ = {
+    core: {
+      invoke: async (command, args) => {
+        if (command === 'youtube_proxy_base') return 'http://127.0.0.1:43111'
+        if (command === 'youtube_request') {
+          const body = JSON.parse(args.body)
+          clients.push(body.context.client.clientName)
+          if (body.context.client.clientName === 'ANDROID') {
+            return JSON.stringify(fakerYoutubePlayer({ videoId: card.videoId, googlevideo }))
+          }
+          return JSON.stringify(
+            fakerYoutubePlayer({ videoId: card.videoId, url: '', hlsManifestUrl }),
+          )
+        }
+        throw new Error(command)
+      },
+    },
+  }
+  await playYoutubeCard(card)
+  assert.deepEqual(clients, ['ANDROID', 'IOS'])
+  assert.equal(state.errorText, '')
+  assert.equal(state.shell.selectedItem.url, `http://127.0.0.1:43111/video/${card.videoId}.m3u8`)
+})
+
 test('Escape no detalhe fecha o overlay', () => {
   state.youtube.detail = state.youtube.rows[0].cards[0]
   renderYoutube()

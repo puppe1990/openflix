@@ -2,7 +2,6 @@ import { fullscreenButtonLabel } from '../src/fullscreen.mjs'
 import { applyPlayerMediaAction, playerMediaAction } from '../src/playerKeys.mjs'
 import {
   cinemaBrandLabel,
-  nextPlaybackRate,
   playbackRateLabel,
   playerClockRange,
   playerHudChrome,
@@ -56,6 +55,7 @@ function stored(frame, extra = {}) {
     onBack: extra.onBack ?? prev.onBack,
     onFullscreen: extra.onFullscreen ?? prev.onFullscreen,
     onNext: extra.onNext ?? prev.onNext,
+    onRate: extra.onRate ?? prev.onRate,
   }
   hudState.set(frame, next)
   return next
@@ -373,7 +373,7 @@ function wireHud(frame, video) {
     togglePlay(video)
   })
   overlay?.querySelector('[data-player-rate]')?.addEventListener('click', () => {
-    video.playbackRate = nextPlaybackRate(video.playbackRate || 1)
+    stored(frame).onRate?.()
   })
   if (video.dataset.hudWired === '1') return
   video.dataset.hudWired = '1'
@@ -399,7 +399,7 @@ export function hidePlayerHudIfIdle(frame, video, extra = {}) {
   if (!overlay || !video) return false
   const hidden = playerHudShouldHide({
     paused: extra.paused ?? video.paused,
-    pinned: extra.pinned ?? Boolean(frame.querySelector('[data-quality-panel]')),
+    pinned: extra.pinned ?? Boolean(frame.querySelector('[data-quality-panel], [data-rate-panel]')),
     idleMs: extra.idleMs ?? 0,
   })
   applyPlayerHudIdle(overlay, hidden)

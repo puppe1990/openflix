@@ -1,6 +1,6 @@
 import { HLS_QUALITY_AUTO, loadHlsQualities, withAutoQuality } from '../src/hlsQualities.mjs'
 import {
-  ghostClass,
+  hudIconBtnClass,
   qualityHeadClass,
   qualityItemClass,
   qualityListClass,
@@ -38,7 +38,11 @@ export function qualityMenuOptions(qualities, masterUrl) {
 }
 
 function qualityButton() {
-  const button = el('button', ghostClass(), 'Qualidade')
+  const button = el(
+    'button',
+    `${hudIconBtnClass()} min-w-12 px-2 font-sans text-[13px] font-bold`,
+    'Qualidade',
+  )
   button.type = 'button'
   button.dataset.quality = '1'
   button.setAttribute('aria-haspopup', 'listbox')
@@ -77,7 +81,8 @@ function qualityPanel({ options, selectedId, onPick, onClose }) {
 function placeQualityButton(toolbar, onToggle) {
   const button = qualityButton()
   button.addEventListener('click', onToggle)
-  const anchor = toolbar.querySelector('[data-sidecar]')
+  const anchor =
+    toolbar.querySelector('[data-player-rate]') ?? toolbar.querySelector('[data-sidecar]')
   if (anchor) toolbar.insertBefore(button, anchor)
   else toolbar.append(button)
   return button
