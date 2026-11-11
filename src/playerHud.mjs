@@ -92,9 +92,11 @@ export function playerSeekTarget({ current, duration, delta } = {}) {
 }
 
 /** O que o HUD cinema mostra conforme o tipo do item. */
-export function playerHudChrome({ catalogKind, item, duration } = {}) {
+export function playerHudChrome({ catalogKind, item, duration, live = false } = {}) {
   const kind = String(catalogKind ?? '')
-  const isLive = kind === 'live'
+  // Prime ao vivo não é `catalogKind: 'live'` (o catálogo é `prime`), mas o HUD
+  // precisa do mesmo bloqueio de seek/velocidade e do selo "Ao vivo".
+  const isLive = kind === 'live' || Boolean(live)
   const isSeries = kind === 'series'
   const total = Number(duration)
   const liveLike = isLive || !Number.isFinite(total) || total <= 0

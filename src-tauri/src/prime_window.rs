@@ -64,6 +64,7 @@ fn ensure_window(app: &AppHandle, target: Url) -> Result<WebviewWindow, String> 
     WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::External(target))
         .title(WINDOW_TITLE)
         .user_agent(SAFARI_UA)
+        .initialization_script(crate::prime_oracle::hook_script_or_empty())
         .inner_size(1600.0, 900.0)
         .center()
         .build()

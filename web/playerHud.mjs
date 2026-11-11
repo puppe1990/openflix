@@ -51,6 +51,7 @@ function stored(frame, extra = {}) {
     ...extra,
     item: extra.item ?? prev.item,
     catalogKind: extra.catalogKind ?? prev.catalogKind,
+    live: extra.live ?? prev.live ?? false,
     qualityLabel: extra.qualityLabel ?? prev.qualityLabel ?? '',
     onBack: extra.onBack ?? prev.onBack,
     onFullscreen: extra.onFullscreen ?? prev.onFullscreen,
@@ -67,6 +68,7 @@ function chromeOf(frame, video) {
     catalogKind: model.catalogKind,
     item: model.item,
     duration: video?.duration,
+    live: model.live,
   })
 }
 

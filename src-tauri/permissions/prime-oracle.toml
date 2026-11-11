@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-prime-oracle-report"
+description = "Deixa o hook injetado no pane oficial da Amazon reportar capturas de playback (PRS/PES/DRM) ao oráculo do OpenFlix."
+commands.allow = ["prime_oracle_report"]

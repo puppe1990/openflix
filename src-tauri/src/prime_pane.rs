@@ -10,6 +10,7 @@ use tauri::{
     Window,
 };
 
+use crate::prime_oracle;
 use crate::prime_window::{allowed_url, SAFARI_UA};
 
 const MAIN_WINDOW: &str = "main";
@@ -125,7 +126,9 @@ pub fn open(app: &AppHandle, url: &str, rect: PaneRect) -> Result<(), String> {
     }
     let webview = main_window(app)?
         .add_child(
-            WebviewBuilder::new(PANE_LABEL, WebviewUrl::External(target)).user_agent(SAFARI_UA),
+            WebviewBuilder::new(PANE_LABEL, WebviewUrl::External(target))
+                .user_agent(SAFARI_UA)
+                .initialization_script(prime_oracle::hook_script_or_empty()),
             LogicalPosition::new(placed.x, placed.y),
             LogicalSize::new(placed.width, placed.height),
         )

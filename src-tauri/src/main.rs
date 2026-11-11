@@ -4,7 +4,11 @@ mod app_paths;
 mod db;
 mod player;
 mod prime_api;
+mod prime_drm;
+mod prime_oracle;
 mod prime_pane;
+mod prime_session;
+mod prime_spike;
 mod prime_window;
 mod secrets;
 mod seed;
@@ -23,6 +27,13 @@ fn play_sidecar(url: String) -> Result<(), String> {
     player::play(&url)
 }
 
+/// Captura do oráculo vinda do hook injetado no pane oficial (IPC, imune a CSP).
+#[tauri::command]
+fn prime_oracle_report(app: AppHandle, payload: String) -> Result<(), String> {
+    prime_oracle::ingest(&app, payload.as_bytes());
+    Ok(())
+}
+
 /// Proxy allowlist do BFF Prime Video (enrichNav / getLandingPage).
 #[tauri::command]
 async fn prime_request(
@@ -32,6 +43,24 @@ async fn prime_request(
     body: Option<String>,
 ) -> Result<String, String> {
     prime_api::request(&app, &method, &path, body.as_deref()).await
+}
+
+/// Licença FairPlay oficial: SPC do nosso CDM + envelope/handoff do oráculo.
+#[tauri::command]
+async fn prime_license(
+    app: AppHandle,
+    url: String,
+    envelope: String,
+    handoff: String,
+    challenge: String,
+) -> Result<String, String> {
+    prime_drm::license(&app, &url, &envelope, &handoff, &challenge).await
+}
+
+/// Cunha uma sessão de playback própria repetindo o PRS oficial do oráculo.
+#[tauri::command]
+async fn prime_session_mint(app: AppHandle, url: String, body: String) -> Result<String, String> {
+    prime_session::mint(&app, &url, &body).await
 }
 
 /// Abre a janela oficial do Prime Video para o login da conta Amazon.
@@ -196,11 +225,21 @@ fn main() {
         .setup(|app| {
             youtube_proxy::start(app.handle().clone())
                 .map(|_| ())
-                .map_err(|error| -> Box<dyn std::error::Error> { error.into() })
+                .map_err(|error| -> Box<dyn std::error::Error> { error.into() })?;
+            prime_oracle::start(app.handle().clone())
+                .map(|_| ())
+                .map_err(|error| -> Box<dyn std::error::Error> { error.into() })?;
+            if std::env::var_os("OPENFLIX_PRIME_SPIKE").is_some() {
+                prime_spike::run(app.handle().clone());
+            }
+            Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             play_sidecar,
             prime_request,
+            prime_oracle_report,
+            prime_license,
+            prime_session_mint,
             prime_sign_in,
             prime_open_player,
             prime_open_external,

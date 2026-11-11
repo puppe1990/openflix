@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "prime-oracle",
+  "description": "Páginas remotas do Prime Video (pane e janela oficial): o hook do oráculo só pode reportar capturas. Nada de segredo, banco ou HTTP arbitrário.",
+  "local": false,
+  "remote": {
+    "urls": ["https://*.primevideo.com/*"]
+  },
+  "webviews": ["prime-pane", "prime-oficial"],
+  "permissions": ["allow-prime-oracle-report"]
+}

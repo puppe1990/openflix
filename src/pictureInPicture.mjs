@@ -15,7 +15,7 @@ export function isPlayingVideo(video) {
   return video.paused === false && video.ended !== true
 }
 
-const PIP_KINDS = new Set(['live', 'movies', 'series', 'youtube'])
+const PIP_KINDS = new Set(['live', 'movies', 'series', 'youtube', 'prime'])
 const YOUTUBE_PROXY = /^http:\/\/127\.0\.0\.1(?::\d+)?\/video\/[A-Za-z0-9_-]{11}\.(mp4|m3u8)$/
 
 function pipCatalogKind({ catalogKind, selectedItem } = {}) {

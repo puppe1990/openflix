@@ -1,4 +1,5 @@
 import { attachHlsPlayback, preferNativeHls } from '../src/hlsPlayback.mjs'
+import { attachFairPlay, pickAudioTrack } from '../src/fairPlay.mjs'
 import {
   isPlayingVideo,
   restorePlayerFromPip,
@@ -53,6 +54,7 @@ function emptyHeld() {
     frame: null,
     item: null,
     catalogKind: null,
+    prime: null,
     rateOpen: false,
     ...emptyQualityState(),
   }
@@ -248,12 +250,13 @@ function favButton(extraClass = '') {
 }
 
 function seekResume(video, item) {
-  if (state.shell.catalogKind === 'live') return
+  if (state.shell.catalogKind === 'live' || held.prime?.live) return
   const saved = resumeStore.load(streamIdOf(item))
   if (saved) video.currentTime = saved.positionMs / 1000
 }
 
 function saveResume(video, item) {
+  if (held.prime?.live) return
   if (!Number.isFinite(video.duration)) return
   resumeStore.save({
     streamId: streamIdOf(item),
@@ -283,8 +286,72 @@ function startVideo(video, url) {
   held.url = url
 }
 
+function reportPlayerError(message) {
+  state.errorText = message
+  const box = byId('error')
+  if (box) box.textContent = message
+}
+
+function bindPrimeHls(video, url, prime) {
+  const invoke = tauriInvoke()
+  if (!invoke) {
+    reportPlayerError('prime nativo só existe no shell Tauri')
+    return
+  }
+  let detach = null
+  let destroyed = false
+  held.session = {
+    kind: 'prime',
+    destroy() {
+      destroyed = true
+      detach?.()
+      video.removeAttribute('src')
+      video.load?.()
+    },
+  }
+  held.url = url
+  video.addEventListener(
+    'loadedmetadata',
+    () => {
+      if (pickAudioTrack(video)) return
+      video.addEventListener('canplay', () => pickAudioTrack(video), { once: true })
+    },
+    { once: true },
+  )
+  void attachFairPlay(video, {
+    certBase64: prime.certBase64,
+    license: (challenge) =>
+      invoke('prime_license', {
+        url: prime.licenseUrl,
+        envelope: prime.envelope,
+        handoff: prime.handoffToken,
+        challenge,
+      }),
+    onError: (error) =>
+      reportPlayerError(`prime recusou a licença: ${String(error?.message ?? error)}`),
+  })
+    .then((cleanup) => {
+      detach = cleanup
+      if (destroyed) {
+        cleanup()
+        return
+      }
+      video.src = url
+      startVideo(video, url)
+    })
+    .catch((error) => reportPlayerError(`prime recusou: ${error.message}`))
+  paintQuality()
+}
+
 function bindHlsOrProgressive(video, url, source) {
   if (held.url === url && held.session) return source
+  if (held.prime && source.kind === 'hls') {
+    held.session?.destroy?.()
+    held.session = null
+    held.url = ''
+    bindPrimeHls(video, url, held.prime)
+    return source
+  }
   const shouldHydrate = source.kind === 'hls' && held.qualities.length === 0
   held.session?.destroy?.()
   held.session = null
@@ -315,6 +382,7 @@ function bindHlsOrProgressive(video, url, source) {
 function playerVideo(url, item) {
   const changed = streamIdOf(item) !== streamIdOf(held.item)
   held.item = item
+  held.prime = item?.prime ?? null
   held.catalogKind = state.shell.catalogKind
   if (changed) {
     rememberWatch(item)
@@ -325,6 +393,7 @@ function playerVideo(url, item) {
     paintPlayerHud(held.frame, held.video, {
       item,
       catalogKind: state.shell.catalogKind,
+      live: Boolean(item?.prime?.live),
     })
     syncGoLiveButton(held.frame)
     const source = resolvePlayerSource(url, { canPlay: (type) => held.video.canPlayType(type) })
@@ -394,9 +463,10 @@ function playerFrame(video, item) {
   mountPlayerHud(frame, video, {
     item,
     catalogKind: kind,
+    live: Boolean(item?.prime?.live),
     actions: {
-      fav: favButton(),
-      sidecar: tauriInvoke() ? sidecarButton() : null,
+      fav: held.prime ? null : favButton(),
+      sidecar: tauriInvoke() && !held.prime ? sidecarButton() : null,
       goLive: kind === 'live' ? goLiveButton() : null,
     },
     onBack: () => void transitionTo(goBack(state.shell)),
@@ -407,6 +477,8 @@ function playerFrame(video, item) {
 }
 
 function playerNote(source) {
+  if (held.prime?.live) return 'Prime Video · FairPlay ao vivo'
+  if (held.prime) return 'Prime Video · FairPlay (HLS nativo)'
   if (source.kind === 'hls' && held.session?.kind === 'hlsjs') return 'HLS pelo fetch do shell'
   if (source.kind === 'hls') return 'HLS nativo do webview'
   if (source.kind === 'progressive') return 'MP4 progressivo'
@@ -495,7 +567,8 @@ export function renderPlayer() {
     ensureEpg(item)
     if (state.epg.listings.length) after.push(epgBlock(item))
   }
-  after.push(note, el('code', playerUrlClass(), redactUrl(url)))
+  after.push(note)
+  if (!held.prime) after.push(el('code', playerUrlClass(), redactUrl(url)))
   if (frame) putPlayerChrome(root, before, frame, after)
   else root.replaceChildren(...before, ...after)
   syncFavButtons()

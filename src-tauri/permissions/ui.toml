@@ -1,0 +1,34 @@
+# Manifesto de permissões do app. Existir este diretório faz o Tauri exigir
+# permissão explícita para todo comando próprio: a UI local recebe o pacote
+# abaixo, e o painel remoto da Amazon recebe só o `prime_oracle_report`.
+
+[[permission]]
+identifier = "allow-ui-commands"
+description = "Comandos que a janela local do OpenFlix chama: catálogo, player, cofres e ajustes."
+commands.allow = [
+  "play_sidecar",
+  "prime_request",
+  "prime_oracle_report",
+  "prime_license",
+  "prime_session_mint",
+  "prime_sign_in",
+  "prime_open_player",
+  "prime_open_external",
+  "prime_pane_open",
+  "prime_pane_place",
+  "prime_pane_hide",
+  "prime_pane_close",
+  "prime_session_cookie",
+  "prime_sign_out",
+  "youtube_request",
+  "youtube_sign_in",
+  "youtube_auth_check",
+  "youtube_session_cookie",
+  "youtube_sign_out",
+  "youtube_proxy_base",
+  "secret_set",
+  "secret_get",
+  "seed_read",
+  "db_get",
+  "db_set",
+]

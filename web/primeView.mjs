@@ -10,6 +10,7 @@ import {
   syncPrimePane,
 } from './primePane.mjs'
 import { openPrimeDest } from './primeVideo.mjs'
+import { tryPrimeNative } from './primeNative.mjs'
 import { openPrimeBrowser, openPrimePlayer, openPrimeSignIn } from './primeWindow.mjs'
 import { state } from './state.mjs'
 
@@ -32,6 +33,7 @@ async function playPrimeCard(card) {
   state.prime.detail = null
   const url = primePlayUrl(card)
   try {
+    if (await tryPrimeNative(url, card)) return
     const opened = await playPrimeInPane(url, card.title)
     if (!opened) await openPrimePlayer(url)
     state.errorText = ''

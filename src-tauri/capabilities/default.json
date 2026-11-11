@@ -4,6 +4,7 @@
   "description": "Webview da UI do OpenFlix: fetch nativo para portais Xtream (sem CORS). Por webview, não por janela — o painel prime-pane carrega primevideo.com e não pode invocar nada.",
   "webviews": ["main"],
   "permissions": [
+    "allow-ui-commands",
     "core:default",
     "core:window:allow-set-fullscreen",
     {
