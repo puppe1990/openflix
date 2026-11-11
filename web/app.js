@@ -1,3 +1,4 @@
+import { callHouse, shouldLeaveToCasa } from '../src/casa.mjs'
 import { shouldConsumeEscape } from '../src/fullscreen.mjs'
 import { DEFAULT_SETTINGS_TAB, selectSettingsTab } from '../src/settingsTabs.mjs'
 import { focusHome, goBack, handleKey, openHomeTile } from '../src/tvShell.mjs'
@@ -17,6 +18,7 @@ import { syncPrimePane } from './primePane.mjs'
 import { handlePrimeKey } from './primeView.mjs'
 import { PRIME_SCREEN_EVENT, openPrimeVideo } from './primeVideo.mjs'
 import { openPrimeSignIn } from './primeWindow.mjs'
+import { openHomeItem } from './catalogView.mjs'
 import { renderAll } from './render.mjs'
 import {
   formatYoutubeError,
@@ -47,7 +49,7 @@ import {
 } from './session.mjs'
 import { transitionTo } from './screenFlow.mjs'
 import { setRedraw, state } from './state.mjs'
-import { loadStores, playlistStore, themeStore } from './stores.mjs'
+import { historyStore, loadStores, playlistStore, themeStore } from './stores.mjs'
 import { wireThemeToggle } from './themeView.mjs'
 
 setRedraw(renderAll)
@@ -88,6 +90,11 @@ async function onKey(event) {
   if (event.key === 'Escape' && shouldConsumeEscape(isPlayerFullscreen())) {
     event.preventDefault()
     await exitPlayerFullscreen()
+    return
+  }
+  if (shouldLeaveToCasa(state.shell, event.key) && globalThis.OpenFlixHouse) {
+    event.preventDefault()
+    callHouse('leave')
     return
   }
   if (state.shell.screen === 'prime' && handlePrimeKey(event.key)) {
@@ -240,6 +247,18 @@ function wireTabs() {
   }
 }
 
+function applyCasaLaunch() {
+  const params = new URLSearchParams(globalThis.location?.search ?? '')
+  if (params.get('screen') === 'prime') {
+    goToScreen({ screen: 'prime' })
+    return
+  }
+  const play = params.get('play')
+  if (!play) return
+  const card = historyStore.list().find((item) => String(item.streamId) === String(play))
+  if (card) openHomeItem(card)
+}
+
 async function boot() {
   state.settingsTab = DEFAULT_SETTINGS_TAB
   document.title = BRAND
@@ -285,9 +304,18 @@ async function boot() {
     button: byId('theme'),
     root: document.documentElement,
   })
-  if (await bootSaved()) return
-  if (await bootSeedLists()) return
-  if (await bootSeed()) return
+  if (await bootSaved()) {
+    applyCasaLaunch()
+    return
+  }
+  if (await bootSeedLists()) {
+    applyCasaLaunch()
+    return
+  }
+  if (await bootSeed()) {
+    applyCasaLaunch()
+    return
+  }
   const warning = state.errorText
   startDemo()
   if (warning) state.errorText = warning
@@ -296,6 +324,7 @@ async function boot() {
   }
   await hydrateSettingsForm()
   renderAll()
+  applyCasaLaunch()
 }
 
 boot()

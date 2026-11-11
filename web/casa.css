@@ -1,0 +1,253 @@
+.casa-body {
+  position: relative;
+  margin: 0;
+  background: #0c0c0e;
+  color: #eee;
+  font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  overflow: hidden;
+}
+
+.casa-frame {
+  box-sizing: border-box;
+  height: 100vh;
+  padding: 10px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.casa-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.casa-clock {
+  opacity: 0.55;
+  font-size: 13px;
+}
+
+.casa-tabs {
+  display: flex;
+  gap: 6px;
+  background: #1a1a1d;
+  border-radius: 20px;
+  padding: 3px;
+}
+
+.casa-tab {
+  border: 0;
+  background: transparent;
+  color: #aaa;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.casa-tab.is-on {
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+}
+
+.casa-chrome.is-focus .casa-tab.is-on {
+  outline: 2px solid #e50914;
+}
+
+.casa-hero {
+  flex: 1;
+  min-height: 0;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #140404 0%, #4a0c0c 55%, #7a1818 100%);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.casa-hero.is-focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.casa-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #e50914;
+}
+
+.casa-title {
+  margin: 6px 0 0;
+  font-family: 'Chivo', 'Helvetica Neue', Arial, sans-serif;
+  font-size: clamp(22px, 4vw, 36px);
+  font-weight: 800;
+}
+
+.casa-cta {
+  margin-top: 10px;
+  width: fit-content;
+  border: 0;
+  border-radius: 18px;
+  padding: 7px 16px;
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.casa-rails {
+  flex-shrink: 0;
+}
+
+.casa-row-title {
+  margin: 0 0 6px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.casa-scroller {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.casa-card {
+  flex: 1;
+  min-width: 0;
+  height: 72px;
+  position: relative;
+  border: 0;
+  border-radius: 6px;
+  background: #1c1b1b;
+  color: #ddd;
+  text-align: left;
+  padding: 0;
+  font-size: 11px;
+  overflow: hidden;
+}
+
+.casa-card-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  background: #111 center / contain no-repeat;
+  font-weight: 800;
+  font-size: 14px;
+  color: #e50914;
+  line-height: 72px;
+  text-align: center;
+}
+
+.casa-card-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 6px 5px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.88));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.casa-card.is-focus {
+  outline: 2px solid #fff;
+}
+
+.casa-dock {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.casa-dot {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: #1c1b1b;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 0;
+  overflow: hidden;
+}
+
+.casa-dot-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.casa-dot[data-dock='openflix'],
+.casa-dot[data-dock='youtube'],
+.casa-dot[data-dock='netflix'],
+.casa-dot[data-dock='prime'],
+.casa-dot[data-dock='play'] {
+  background: #0c0c0e;
+}
+.casa-dot[data-dock='prime'] {
+  background: #00a8e1;
+}
+.casa-dot[data-dock='play'] {
+  background: #3cba54;
+}
+.casa-dot[data-dock='hdmi'] {
+  background: #2563eb;
+}
+.casa-dot[data-dock='files'] {
+  background: #c97800;
+}
+.casa-dot[data-dock='settings'] {
+  background: #333;
+}
+
+.casa-dot.is-focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.casa-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 72px;
+  transform: translateX(-50%);
+  margin: 0;
+  background: #1c1b1b;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.casa-apps {
+  position: absolute;
+  inset: 48px 16px 72px;
+  background: #0c0c0e;
+  border-radius: 10px;
+  padding: 12px;
+  overflow: auto;
+}
+
+.casa-apps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.casa-app {
+  border: 0;
+  border-radius: 8px;
+  background: #1c1b1b;
+  color: #eee;
+  padding: 16px 8px;
+  font-size: 12px;
+}
