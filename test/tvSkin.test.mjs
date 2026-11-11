@@ -26,6 +26,9 @@ import {
   playerTitleClass,
   playerUrlClass,
   qualityPanelClass,
+  settingsFieldClass,
+  settingsRailClass,
+  settingsStageClass,
   tabClass,
   themeToggleClass,
   tileClass,
@@ -98,6 +101,37 @@ test('botão de tema é alvo 10-foot no header', () => {
 test('chip da playlist ativa usa o vermelho', () => {
   assert.match(playlistChipClass(true), /bg-accent/)
   assert.match(playlistChipClass(false), /bg-panel/)
+})
+
+test('palco de Ajustes é trilho à esquerda e formulário à direita', () => {
+  assert.match(settingsStageClass(), /grid-cols-\[13rem_minmax\(0,1fr\)\]/)
+  assert.match(settingsStageClass(), /min-h-\[calc\(100vh-8rem\)\]/)
+})
+
+test('trilho de Ajustes marca a aba ativa com filete vermelho', () => {
+  assert.match(settingsRailClass(true), /border-l-accent/)
+  assert.match(settingsRailClass(true), /text-ink/)
+  assert.match(settingsRailClass(true), /font-bold/)
+  assert.equal(settingsRailClass(false).includes('border-l-accent'), false)
+  assert.match(settingsRailClass(false), /text-mute/)
+})
+
+test('trilho de Ajustes é linha inteira 10-foot', () => {
+  assert.match(settingsRailClass(false), /w-full/)
+  assert.match(settingsRailClass(false), /py-3/)
+  assert.match(settingsRailClass(false), /text-left/)
+})
+
+test('lista salva em Ajustes é linha inteira, não pílula', () => {
+  assert.match(playlistChipClass(false), /w-full/)
+  assert.match(playlistChipClass(false), /text-left/)
+  assert.match(playlistChipClass(true), /w-full/)
+})
+
+test('campo de Ajustes usa o poço e anel vermelho no foco', () => {
+  assert.match(settingsFieldClass(), /bg-panel/)
+  assert.match(settingsFieldClass(), /focus:ring-accent/)
+  assert.match(settingsFieldClass(), /text-\[16px\]/)
 })
 
 test('selo ao vivo usa o vermelho da marca', () => {

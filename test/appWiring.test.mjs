@@ -174,6 +174,17 @@ test('Ajustes → YouTube oferece login oficial, sessão do app e sair', async (
   assert.match(document.getElementById('youtubeSignOutBtn').textContent, /Sair/i)
 })
 
+test('Ajustes esconde Playlists salvas quando não há lista', async () => {
+  const { SPINNER_MIN_MS } = await import('../src/screenSpinner.mjs')
+  await import(`../web/app.js?t=${Date.now()}`)
+  await settle()
+  document.getElementById('tab-settings').click()
+  await settle(SPINNER_MIN_MS + 80)
+  const wrap = document.getElementById('savedPlaylistsWrap')
+  assert.ok(wrap)
+  assert.equal(wrap.hidden, document.querySelectorAll('#savedPlaylists button').length === 0)
+})
+
 test('aba YouTube mostra o trilho chrome mesmo no preview sem Tauri', async () => {
   const { SPINNER_MIN_MS } = await import('../src/screenSpinner.mjs')
   await import(`../web/app.js?t=${Date.now()}`)

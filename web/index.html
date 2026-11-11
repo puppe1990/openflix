@@ -80,236 +80,240 @@
 
       <section id="player" class="min-w-0 pt-6" hidden></section>
 
-      <section id="settings" class="max-w-[720px] pt-6" hidden>
-        <h1 class="m-0 mb-2 font-display text-[clamp(28px,2.4vw,40px)] font-bold tracking-tight">
+      <section id="settings" class="pt-4" hidden>
+        <h1 class="m-0 mb-1 font-display text-[clamp(22px,2.2vw,28px)] font-bold tracking-tight">
           Ajustes
         </h1>
-        <p class="mb-6 max-w-[46ch] text-[16px] text-mute">
-          Playlists, streaming Xtream, Prime Video e YouTube. Sem MAC, sem VPN.
+        <p class="mb-4 max-w-[40rem] text-[15px] text-mute">
+          Listas, portal e sessões do Prime e do YouTube
         </p>
-        <nav id="settingsTabs" class="mb-6 flex flex-wrap gap-2" aria-label="Seções de ajustes">
-          <button type="button" id="settings-tab-playlists" data-settings-tab="playlists">
-            Playlists
-          </button>
-          <button type="button" id="settings-tab-streaming" data-settings-tab="streaming">
-            Streaming
-          </button>
-          <button type="button" id="settings-tab-prime" data-settings-tab="prime">
-            Prime Video
-          </button>
-          <button type="button" id="settings-tab-youtube" data-settings-tab="youtube">
-            YouTube
-          </button>
-        </nav>
-        <div id="settingsLists">
-          <p class="mb-2 text-[12px] font-bold tracking-wide text-mute uppercase">
-            Playlists salvas
-          </p>
-          <ul id="savedPlaylists" class="mb-6 flex list-none flex-wrap gap-2 p-0"></ul>
-          <label class="mb-6 grid gap-2 text-[14px] text-mute"
-            >Nome
-            <input
-              id="plName"
-              name="name"
-              autocomplete="off"
-              class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
-            />
-          </label>
-        </div>
-        <div id="settings-pane-playlists" class="grid w-full gap-4">
-          <p class="m-0 max-w-[46ch] text-[14px] text-mute">Lista M3U própria.</p>
-          <label class="grid gap-2 text-[14px] text-mute"
-            >Lista M3U
-            <input
-              id="plM3u"
-              name="m3u"
-              placeholder="https://exemplo.com/lista.m3u"
-              class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
-            />
-          </label>
-          <div class="flex flex-wrap gap-3">
-            <button
-              type="button"
-              id="m3uBtn"
-              class="cursor-pointer rounded-lg border-0 bg-action px-5 py-3 font-sans text-[16px] font-bold text-void"
-            >
-              Guardar M3U
+        <div
+          id="settingsStage"
+          class="grid min-h-[calc(100vh-8rem)] grid-cols-[13rem_minmax(0,1fr)] gap-6"
+        >
+          <nav
+            id="settingsTabs"
+            class="sticky top-14 flex flex-col gap-1 self-start border-r border-line py-1"
+            aria-label="Seções de ajustes"
+          >
+            <button type="button" id="settings-tab-playlists" data-settings-tab="playlists">
+              Playlists
             </button>
-          </div>
-        </div>
-        <div id="settings-pane-streaming" hidden>
-          <form id="playlistForm" class="grid w-full gap-4">
-            <p class="m-0 max-w-[46ch] text-[14px] text-mute">
-              Portal Xtream (player_api). Sem MAC.
-            </p>
-            <label class="grid gap-2 text-[14px] text-mute"
-              >Portal
-              <input
-                id="plPortal"
-                name="portal"
-                placeholder="http://servidor:8080"
-                class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
-              />
-            </label>
-            <label class="grid gap-2 text-[14px] text-mute"
-              >Usuário
-              <input
-                id="plUser"
-                name="username"
-                autocomplete="off"
-                class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
-              />
-            </label>
-            <label class="grid gap-2 text-[14px] text-mute"
-              >Senha
-              <input
-                id="plPass"
-                name="password"
-                type="password"
-                autocomplete="current-password"
-                class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
-              />
-            </label>
-            <label class="grid gap-2 text-[14px] text-mute"
-              >Portais para descobrir (um por linha)
-              <textarea
-                id="plCandidates"
-                name="candidates"
-                rows="3"
-                placeholder="http://servidor-a.com&#10;http://servidor-b.com"
-                class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
-              ></textarea>
-            </label>
-            <div class="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                class="cursor-pointer rounded-lg border-0 bg-action px-5 py-3 font-sans text-[16px] font-bold text-void"
-              >
-                Guardar XC
-              </button>
-              <button
-                type="button"
-                id="discoverBtn"
-                class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-              >
-                Descobrir portal
-              </button>
-              <button
-                type="button"
-                id="demoBtn"
-                class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-              >
-                Carregar demo
-              </button>
+            <button type="button" id="settings-tab-streaming" data-settings-tab="streaming">
+              Streaming
+            </button>
+            <button type="button" id="settings-tab-prime" data-settings-tab="prime">
+              Prime Video
+            </button>
+            <button type="button" id="settings-tab-youtube" data-settings-tab="youtube">
+              YouTube
+            </button>
+          </nav>
+          <div class="min-w-0 max-w-[40rem]">
+            <div id="settingsLists">
+              <div id="savedPlaylistsWrap">
+                <p class="mb-2 text-[13px] text-mute">Playlists salvas</p>
+                <ul id="savedPlaylists" class="mb-4 flex list-none flex-col gap-2 p-0"></ul>
+              </div>
+              <label class="mb-4 grid gap-2 text-[14px] text-mute"
+                >Nome da lista
+                <input
+                  id="plName"
+                  name="name"
+                  autocomplete="off"
+                  class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
+                />
+              </label>
             </div>
-          </form>
-        </div>
-        <div id="settings-pane-prime" hidden>
-          <h2 class="m-0 mb-2 font-display text-[22px] font-bold tracking-tight">Prime Video</h2>
-          <p class="mb-4 max-w-[46ch] text-[14px] text-mute">
-            Entre na janela oficial da Amazon dentro do app: a senha não passa pelo OpenFlix, e a
-            sessão alimenta o catálogo nativo e a janela do player.
-          </p>
-          <div class="mb-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              id="primeSignInBtn"
-              class="cursor-pointer rounded-lg border-0 bg-action px-5 py-3 font-sans text-[16px] font-bold text-void"
-            >
-              Entrar no Prime Video
-            </button>
-            <button
-              type="button"
-              id="primeSyncBtn"
-              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-            >
-              Usar sessão deste app
-            </button>
-            <button
-              type="button"
-              id="primeSignOutBtn"
-              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-            >
-              Sair
-            </button>
-          </div>
-          <label class="mb-3 grid max-w-[46ch] gap-2 text-[13px] text-mute" for="primeCookie">
-            Cookie da sessão (opcional, para quem preferir colar)
-            <textarea
-              id="primeCookie"
-              rows="3"
-              class="w-full rounded-lg border-0 bg-panel p-3 font-sans text-[13px] text-ink outline-none focus:ring-1 focus:ring-accent"
-            ></textarea>
-          </label>
-          <div class="flex flex-wrap gap-3">
-            <button
-              type="button"
-              id="primeCookieBtn"
-              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-            >
-              Guardar cookie
-            </button>
-            <button
-              type="button"
-              id="primeBtn"
-              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-            >
-              Abrir catálogo
-            </button>
-          </div>
-        </div>
-        <div id="settings-pane-youtube" hidden>
-          <h2 class="m-0 mb-2 font-display text-[22px] font-bold tracking-tight">YouTube</h2>
-          <p class="mb-4 max-w-[46ch] text-[14px] text-mute">
-            Entre com sua conta na janela do Google. O app detecta sozinho quando terminar; a senha
-            não passa pelo OpenFlix.
-          </p>
-          <div class="mb-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              id="youtubeSignInBtn"
-              class="cursor-pointer rounded-lg border-0 bg-action px-5 py-3 font-sans text-[16px] font-bold text-void"
-            >
-              Entrar no YouTube
-            </button>
-            <button
-              type="button"
-              id="youtubeSyncBtn"
-              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-            >
-              Usar sessão deste app
-            </button>
-            <button
-              type="button"
-              id="youtubeSignOutBtn"
-              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-            >
-              Sair
-            </button>
-          </div>
-          <label class="mb-3 grid max-w-[46ch] gap-2 text-[13px] text-mute" for="youtubeCookie">
-            Cookie da sessão (opcional, para quem preferir colar)
-            <textarea
-              id="youtubeCookie"
-              rows="3"
-              class="w-full rounded-lg border-0 bg-panel p-3 font-sans text-[13px] text-ink outline-none focus:ring-1 focus:ring-accent"
-            ></textarea>
-          </label>
-          <div class="flex flex-wrap gap-3">
-            <button
-              type="button"
-              id="youtubeCookieBtn"
-              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-            >
-              Guardar cookie
-            </button>
-            <button
-              type="button"
-              id="youtubeBtn"
-              class="cursor-pointer rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
-            >
-              Abrir catálogo
-            </button>
+            <div id="settings-pane-playlists" class="grid w-full gap-4">
+              <label class="grid gap-2 text-[14px] text-mute"
+                >Cole o endereço da sua lista M3U
+                <input
+                  id="plM3u"
+                  name="m3u"
+                  placeholder="https://exemplo.com/lista.m3u"
+                  class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
+                />
+              </label>
+              <div class="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  id="m3uBtn"
+                  class="inline-flex cursor-pointer items-center rounded-lg border-0 bg-action px-5 py-3 font-sans text-[16px] font-bold text-void"
+                >
+                  Guardar M3U
+                </button>
+              </div>
+            </div>
+            <div id="settings-pane-streaming" hidden>
+              <form id="playlistForm" class="grid w-full gap-4">
+                <p class="m-0 text-[15px] text-ink">Portal, usuário e senha da sua lista</p>
+                <label class="grid gap-2 text-[14px] text-mute"
+                  >Portal
+                  <input
+                    id="plPortal"
+                    name="portal"
+                    placeholder="http://servidor:8080"
+                    class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
+                  />
+                </label>
+                <label class="grid gap-2 text-[14px] text-mute"
+                  >Usuário
+                  <input
+                    id="plUser"
+                    name="username"
+                    autocomplete="off"
+                    class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
+                  />
+                </label>
+                <label class="grid gap-2 text-[14px] text-mute"
+                  >Senha
+                  <input
+                    id="plPass"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
+                  />
+                </label>
+                <label class="grid gap-2 text-[14px] text-mute"
+                  >Portais para descobrir, um por linha
+                  <textarea
+                    id="plCandidates"
+                    name="candidates"
+                    rows="3"
+                    placeholder="http://servidor-a.com&#10;http://servidor-b.com"
+                    class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
+                  ></textarea>
+                </label>
+                <div class="flex flex-wrap gap-3">
+                  <button
+                    type="submit"
+                    class="inline-flex cursor-pointer items-center rounded-lg border-0 bg-action px-5 py-3 font-sans text-[16px] font-bold text-void"
+                  >
+                    Guardar XC
+                  </button>
+                  <button
+                    type="button"
+                    id="discoverBtn"
+                    class="inline-flex cursor-pointer items-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                  >
+                    Descobrir portal
+                  </button>
+                  <button
+                    type="button"
+                    id="demoBtn"
+                    class="inline-flex cursor-pointer items-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                  >
+                    Carregar demo
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div id="settings-pane-prime" hidden>
+              <p class="mb-6 text-[15px] text-ink">
+                Entre na janela da Amazon. A senha não passa pelo OpenFlix
+              </p>
+              <div class="mb-8 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  id="primeSignInBtn"
+                  class="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-action px-5 py-3 font-sans text-[16px] font-bold text-void"
+                >
+                  Entrar no Prime Video
+                </button>
+                <button
+                  type="button"
+                  id="primeSyncBtn"
+                  class="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                >
+                  Usar sessão deste app
+                </button>
+                <button
+                  type="button"
+                  id="primeSignOutBtn"
+                  class="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                >
+                  Sair
+                </button>
+                <button
+                  type="button"
+                  id="primeBtn"
+                  class="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                >
+                  Abrir catálogo
+                </button>
+              </div>
+              <div class="border-t border-line pt-6">
+                <label class="mb-3 grid gap-2 text-[13px] text-mute" for="primeCookie">
+                  Cookie da sessão
+                  <textarea
+                    id="primeCookie"
+                    rows="3"
+                    class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
+                  ></textarea>
+                </label>
+                <button
+                  type="button"
+                  id="primeCookieBtn"
+                  class="inline-flex cursor-pointer items-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                >
+                  Guardar cookie
+                </button>
+              </div>
+            </div>
+            <div id="settings-pane-youtube" hidden>
+              <p class="mb-6 text-[15px] text-ink">
+                Entre com sua conta na janela do Google. O app detecta sozinho quando terminar
+              </p>
+              <div class="mb-8 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  id="youtubeSignInBtn"
+                  class="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-action px-5 py-3 font-sans text-[16px] font-bold text-void"
+                >
+                  Entrar no YouTube
+                </button>
+                <button
+                  type="button"
+                  id="youtubeSyncBtn"
+                  class="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                >
+                  Usar sessão deste app
+                </button>
+                <button
+                  type="button"
+                  id="youtubeSignOutBtn"
+                  class="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                >
+                  Sair
+                </button>
+                <button
+                  type="button"
+                  id="youtubeBtn"
+                  class="inline-flex w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                >
+                  Abrir catálogo
+                </button>
+              </div>
+              <div class="border-t border-line pt-6">
+                <label class="mb-3 grid gap-2 text-[13px] text-mute" for="youtubeCookie">
+                  Cookie da sessão
+                  <textarea
+                    id="youtubeCookie"
+                    rows="3"
+                    class="w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent"
+                  ></textarea>
+                </label>
+                <button
+                  type="button"
+                  id="youtubeCookieBtn"
+                  class="inline-flex cursor-pointer items-center rounded-lg border-0 bg-row px-5 py-3 font-sans text-[16px] font-bold text-ink"
+                >
+                  Guardar cookie
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>

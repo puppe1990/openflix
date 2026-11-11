@@ -4,7 +4,7 @@ import {
   settingsListsHidden,
   settingsPaneHidden,
 } from '../src/settingsTabs.mjs'
-import { playlistChipClass, primeChipClass } from '../src/tvSkin.mjs'
+import { playlistChipClass, settingsRailClass, settingsStageClass } from '../src/tvSkin.mjs'
 import { BRAND } from './config.mjs'
 import { renderCatalog, renderHome, renderTabs } from './catalogView.mjs'
 import { byId } from './dom.mjs'
@@ -33,7 +33,10 @@ function renderSavedPlaylists() {
   const list = byId('savedPlaylists')
   if (!list) return
   list.replaceChildren()
-  for (const playlist of playlistStore.list()) {
+  const playlists = playlistStore.list()
+  const wrap = byId('savedPlaylistsWrap')
+  if (wrap) wrap.hidden = playlists.length === 0
+  for (const playlist of playlists) {
     const button = document.createElement('button')
     button.type = 'button'
     button.dataset.playlistId = playlist.id
@@ -49,14 +52,17 @@ function renderSettingsTabs() {
   if (lists) lists.hidden = settingsListsHidden(active)
   for (const tab of SETTINGS_TABS) {
     const button = byId(`settings-tab-${tab.id}`)
-    if (button) button.className = primeChipClass(active === tab.id)
+    if (button) button.className = settingsRailClass(active === tab.id)
     const pane = byId(`settings-pane-${tab.id}`)
     if (pane) pane.hidden = settingsPaneHidden(active, tab.id)
   }
 }
 
 function renderSettings() {
-  byId('settings').hidden = state.shell.screen !== 'settings'
+  const root = byId('settings')
+  root.hidden = state.shell.screen !== 'settings'
+  const stage = byId('settingsStage')
+  if (stage) stage.className = settingsStageClass()
   renderSavedPlaylists()
   renderSettingsTabs()
 }
