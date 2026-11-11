@@ -194,11 +194,26 @@ export function qualityItemClass(selected) {
   return `${base} bg-transparent text-ink`
 }
 
+export function settingsStageClass() {
+  return 'grid min-h-[calc(100vh-8rem)] grid-cols-[13rem_minmax(0,1fr)] gap-6'
+}
+
+export function settingsRailClass(active) {
+  const base =
+    'flex w-full cursor-pointer items-center rounded-none border-0 border-l-2 bg-transparent px-4 py-3 text-left font-sans text-[16px]'
+  if (active) return `${base} border-l-accent bg-panel font-bold text-ink`
+  return `${base} border-l-transparent text-mute`
+}
+
+export function settingsFieldClass() {
+  return 'w-full rounded-lg border-0 bg-panel px-4 py-3 font-sans text-[16px] text-ink outline-none focus:ring-1 focus:ring-accent'
+}
+
 export function playlistChipClass(selected) {
   if (selected) {
-    return 'cursor-pointer rounded-lg border-0 bg-accent px-4 py-2 font-sans text-[clamp(14px,1vw,16px)] font-bold text-ink'
+    return 'flex w-full cursor-pointer rounded-lg border-0 bg-accent px-4 py-3 text-left font-sans text-[clamp(14px,1vw,16px)] font-bold text-ink'
   }
-  return 'cursor-pointer rounded-lg border-0 bg-panel px-4 py-2 font-sans text-[clamp(14px,1vw,16px)] text-ink'
+  return 'flex w-full cursor-pointer rounded-lg border-0 bg-panel px-4 py-3 text-left font-sans text-[clamp(14px,1vw,16px)] text-ink'
 }
 
 export function primeChipClass(active) {
