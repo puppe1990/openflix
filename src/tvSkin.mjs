@@ -101,11 +101,14 @@ export function playerNoteClass() {
   return 'm-0 text-[clamp(14px,1vw,18px)] text-mute'
 }
 
-export function tabClass(active) {
-  if (active) {
-    return 'cursor-pointer border-0 bg-transparent p-0 font-sans text-[clamp(14px,1vw,18px)] font-bold text-ink'
+export function tabClass(active, focused = false) {
+  if (focused) {
+    return 'cursor-pointer shrink-0 whitespace-nowrap rounded-sm border-0 bg-accent px-1.5 py-1 font-sans text-[clamp(13px,1vw,18px)] font-bold text-ink ring-2 ring-accent xl:px-2'
   }
-  return 'cursor-pointer border-0 bg-transparent p-0 font-sans text-[clamp(14px,1vw,18px)] text-mute'
+  if (active) {
+    return 'cursor-pointer shrink-0 whitespace-nowrap rounded-sm border-0 bg-transparent px-1.5 py-1 font-sans text-[clamp(13px,1vw,18px)] font-bold text-ink xl:px-2'
+  }
+  return 'cursor-pointer shrink-0 whitespace-nowrap rounded-sm border-0 bg-transparent px-1.5 py-1 font-sans text-[clamp(13px,1vw,18px)] text-mute xl:px-2'
 }
 
 export function actionClass() {

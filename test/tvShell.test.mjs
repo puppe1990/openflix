@@ -106,12 +106,41 @@ test('abrir outra aba zera o catálogo', () => {
 
 test('handleKey mapeia D-pad da home e Enter', () => {
   let shell = handleKey(createTvShell(), 'ArrowRight')
-  assert.equal(shell.homeId, 'movies')
+  assert.equal(shell.menuIndex, 1)
   shell = handleKey(shell, 'Enter')
   assert.equal(shell.screen, 'catalog')
-  assert.equal(shell.catalogKind, 'movies')
+  assert.equal(shell.catalogKind, 'live')
   shell = handleKey(shell, 'Escape')
   assert.equal(shell.screen, 'home')
+})
+
+test('Escape no player volta pro catálogo', () => {
+  const cat = fakerCategory({ id: 1 })
+  const stream = fakerLiveStream({ categoryId: 1 })
+  const catalog = mapCatalog({ kind: 'live', categories: [cat], streams: [stream] })
+  let shell = bindCatalog(openHomeTile(createTvShell()), catalog)
+  shell = handleKey(shell, 'Enter')
+  assert.equal(shell.screen, 'player')
+  shell = handleKey(shell, 'Escape')
+  assert.equal(shell.screen, 'catalog')
+  assert.equal(shell.catalogKind, 'live')
+  assert.equal(shell.selectedItem.id, stream.stream_id)
+})
+
+test('D-pad na home dá a volta no menu do header', () => {
+  let shell = createTvShell()
+  assert.equal(shell.menuIndex, 0)
+  for (let i = 0; i < 7; i += 1) shell = handleKey(shell, 'ArrowRight')
+  assert.equal(shell.menuIndex, 0)
+  assert.equal(shell.screen, 'home')
+})
+
+test('Enter no Prime Video do menu abre a tela prime', () => {
+  let shell = createTvShell()
+  for (let i = 0; i < 4; i += 1) shell = handleKey(shell, 'ArrowRight')
+  assert.equal(shell.menuIndex, 4)
+  shell = handleKey(shell, 'Enter')
+  assert.equal(shell.screen, 'prime')
 })
 
 test('bindCatalog de filmes também coloca Todos na frente', () => {
@@ -139,4 +168,52 @@ test('Enter no item do faker abre o player', () => {
   shell = handleKey(shell, 'Enter')
   assert.equal(shell.screen, 'player')
   assert.equal(shell.selectedItem.id, stream.stream_id)
+})
+
+function liveCatalogShell() {
+  const cat = fakerCategory({ id: 1 })
+  const first = fakerLiveStream({ categoryId: 1 })
+  const second = fakerLiveStream({ categoryId: 1 })
+  const catalog = mapCatalog({ kind: 'live', categories: [cat], streams: [first, second] })
+  return { shell: bindCatalog(openHomeTile(createTvShell()), catalog), first, second }
+}
+
+test('ArrowRight no catálogo foca o header e anda uma aba', () => {
+  const { shell: start, first } = liveCatalogShell()
+  const next = handleKey(start, 'ArrowRight')
+  assert.equal(next.screen, 'catalog')
+  assert.equal(next.focus, 'menu')
+  assert.equal(next.menuIndex, (start.menuIndex ?? 0) + 1)
+  assert.equal(next.selectedItem.id, first.stream_id)
+})
+
+test('Enter em Início no menu do catálogo volta pra home', () => {
+  const { shell: start } = liveCatalogShell()
+  const next = handleKey({ ...start, focus: 'menu', menuIndex: 0 }, 'Enter')
+  assert.equal(next.screen, 'home')
+  assert.equal(next.focus, 'menu')
+})
+
+test('ArrowDown no menu do catálogo devolve o foco pra lista', () => {
+  const { shell: start, first } = liveCatalogShell()
+  const next = handleKey({ ...start, focus: 'menu', menuIndex: 1 }, 'ArrowDown')
+  assert.equal(next.screen, 'catalog')
+  assert.equal(next.focus, 'list')
+  assert.equal(next.selectedItem.id, first.stream_id)
+})
+
+test('ArrowUp no primeiro canal foca o menu sem trocar o item', () => {
+  const { shell: start, first } = liveCatalogShell()
+  const next = handleKey(start, 'ArrowUp')
+  assert.equal(next.focus, 'menu')
+  assert.equal(next.itemIndex, 0)
+  assert.equal(next.selectedItem.id, first.stream_id)
+})
+
+test('Enter em Filmes no menu do catálogo abre o catálogo de filmes', () => {
+  const { shell: start } = liveCatalogShell()
+  const next = handleKey({ ...start, focus: 'menu', menuIndex: 2 }, 'Enter')
+  assert.equal(next.screen, 'catalog')
+  assert.equal(next.catalogKind, 'movies')
+  assert.equal(next.focus, 'list')
 })
