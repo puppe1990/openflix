@@ -11,7 +11,7 @@ import {
 import { channelMark } from '../src/channelMark.mjs'
 import { epgProgress } from '../src/epgProgress.mjs'
 import { nowAndNext } from '../src/xmltvNowNext.mjs'
-import { HOME_TILES } from '../src/tvShell.mjs'
+import { HOME_TILES, MENU_TABS } from '../src/tvShell.mjs'
 import { itemFromWatchCard, watchCardFromItem } from '../src/watchCard.mjs'
 import {
   catalogDetailClass,
@@ -154,13 +154,20 @@ export function openHomeItem(card) {
   })
 }
 
+function menuTabName(tab) {
+  return tab?.catalogKind ?? tab?.screen
+}
+
 /** Marca a aba ativa pelo estado atual. */
 export function renderTabs() {
   const { shell } = state
   const active = shell.screen === 'catalog' ? shell.catalogKind : shell.screen
+  const menuOn = shell.screen === 'home' || shell.focus === 'menu'
+  const focused = menuOn ? MENU_TABS[shell.menuIndex ?? 0] : null
   for (const [id, name] of Object.entries(TAB_SCREENS)) {
     const tab = byId(id)
-    if (tab) tab.className = tabClass(active === name)
+    if (tab)
+      tab.className = tabClass(active === name, Boolean(focused && menuTabName(focused) === name))
   }
 }
 

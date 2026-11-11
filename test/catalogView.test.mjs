@@ -138,10 +138,32 @@ test('selectItem abre o player no item escolhido', () => {
 })
 
 test('abas marcam a ativa em negrito', () => {
-  state.shell = { ...createTvShell(), screen: 'catalog', catalogKind: 'movies' }
+  state.shell = { ...createTvShell(), screen: 'catalog', catalogKind: 'movies', focus: 'list' }
   renderTabs()
   assert.match(document.getElementById('tab-movies').className, /font-bold/)
   assert.equal(document.getElementById('tab-inicio').className.includes('font-bold'), false)
+})
+
+test('home pinta anel na aba focada do menu', () => {
+  state.shell = { ...createTvShell(), menuIndex: 1 }
+  renderTabs()
+  assert.match(document.getElementById('tab-live').className, /ring-accent/)
+  assert.equal(document.getElementById('tab-inicio').className.includes('ring-accent'), false)
+  assert.match(document.getElementById('tab-inicio').className, /font-bold/)
+})
+
+test('catálogo com menu focado pinta a aba do header', () => {
+  state.shell = {
+    ...createTvShell(),
+    screen: 'catalog',
+    catalogKind: 'live',
+    focus: 'menu',
+    menuIndex: 2,
+  }
+  renderTabs()
+  assert.match(document.getElementById('tab-movies').className, /bg-accent/)
+  assert.equal(document.getElementById('tab-live').className.includes('bg-accent'), false)
+  assert.match(document.getElementById('tab-live').className, /font-bold/)
 })
 
 test('home mostra o destaque quando há item escolhido', () => {

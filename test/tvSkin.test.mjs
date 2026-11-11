@@ -62,6 +62,21 @@ test('aba ativa fica branca e em negrito', () => {
   assert.match(tabClass(false), /text-mute/)
 })
 
+test('aba do header não quebra linha no projetor', () => {
+  assert.match(tabClass(false), /whitespace-nowrap/)
+  assert.match(tabClass(true), /whitespace-nowrap/)
+  assert.match(tabClass(false, true), /whitespace-nowrap/)
+})
+
+test('aba focada do D-pad ganha anel vermelho', () => {
+  assert.match(tabClass(false, true), /ring-accent/)
+  assert.match(tabClass(false, true), /bg-accent/)
+  assert.equal(tabClass(false).includes('ring-accent'), false)
+  assert.equal(tabClass(false).includes('bg-accent'), false)
+  assert.match(tabClass(true, true), /ring-accent/)
+  assert.match(tabClass(true, true), /font-bold/)
+})
+
 test('ação primária é o botão branco de assistir', () => {
   assert.match(actionClass(), /bg-action/)
   assert.match(actionClass(), /text-void/)
