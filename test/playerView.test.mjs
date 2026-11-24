@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { afterEach, beforeEach, test } from 'node:test'
 import { JSDOM } from 'jsdom'
 import { faker, fakerYoutubeVideoId } from './factories.mjs'
+import { livePlaybackUrl, transcodePlaybackUrl } from '../src/leanbackVod.mjs'
 import { createTvShell } from '../src/tvShell.mjs'
 
 const HLS_TYPE = 'application/vnd.apple.mpegurl'
@@ -41,7 +42,7 @@ const { state } = await import('../web/state.mjs')
 const { renderPlayer, resetPlayerMedia, setHlsEngine } = await import('../web/playerView.mjs')
 const { resetPlayerFullscreen, togglePlayerFullscreen } = await import('../web/fullscreen.mjs')
 const { applyPlayerHudIdle, hidePlayerHudIfIdle } = await import('../web/playerHud.mjs')
-const { favStore, historyStore } = await import('../web/stores.mjs')
+const { favStore, historyStore, resumeStore } = await import('../web/stores.mjs')
 const originalFetch = globalThis.fetch
 
 beforeEach(() => {
@@ -95,6 +96,33 @@ test('no desktop o play fica com o header', () => {
   openFla()
   renderPlayer()
   assert.equal(document.body.classList.contains('is-fullscreen'), false)
+})
+
+test('no projetor o ao vivo toca pela janela HLS da LAN', () => {
+  globalThis.OpenFlixHouse = { leave() {} }
+  const url = openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const expected = livePlaybackUrl(url)
+  assert.equal(video.getAttribute('src') || video.src, expected)
+  assert.equal(plays.at(-1), expected)
+})
+
+test('no projetor o filme mp4 toca pelo HLS 720p da LAN', () => {
+  globalThis.OpenFlixHouse = { leave() {} }
+  const url = `http://${faker.internet.domainName()}/movie/user/pass/1837892.mp4`
+  state.client = { moviePlayUrl: () => url }
+  state.shell = {
+    ...createTvShell(),
+    screen: 'player',
+    catalogKind: 'movies',
+    selectedItem: { id: 1837892, name: faker.lorem.words(2), extension: 'mp4' },
+  }
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const expected = transcodePlaybackUrl(url)
+  assert.equal(video.getAttribute('src') || video.src, expected)
+  assert.equal(plays.at(-1), expected)
 })
 
 test('player esconde os controles nativos e pinta o HUD cinema', () => {
@@ -725,6 +753,45 @@ test('player de filme não mostra Ir ao vivo', () => {
   }
   renderPlayer()
   assert.equal(document.querySelector('[data-go-live]'), null)
+})
+
+test('ao vivo nativo no loadedmetadata pula para a borda com atraso', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const end = faker.number.float({ min: 80, max: 140, fractionDigits: 1 })
+  Object.defineProperty(video, 'seekable', {
+    configurable: true,
+    get: () => ({ length: 1, start: () => 0, end: () => end }),
+  })
+  video.currentTime = 0
+  video.dispatchEvent(new dom.window.Event('loadedmetadata'))
+  assert.equal(video.currentTime, end - 8)
+})
+
+test('ao vivo não grava resume da borda EVENT', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const duration = faker.number.int({ min: 80_000, max: 200_000 })
+  Object.defineProperty(video, 'duration', { configurable: true, get: () => duration })
+  video.currentTime = duration / 2
+  video.dispatchEvent(new dom.window.Event('timeupdate'))
+  assert.equal(resumeStore.load(1658633), null)
+})
+
+test('Ir ao vivo nativo fica 8s atrás do seekable', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const end = faker.number.float({ min: 80, max: 140, fractionDigits: 1 })
+  Object.defineProperty(video, 'seekable', {
+    configurable: true,
+    get: () => ({ length: 1, start: () => 0, end: () => end }),
+  })
+  video.currentTime = 1
+  document.querySelector('[data-go-live]').click()
+  assert.equal(video.currentTime, end - 8)
 })
 
 test('clicar Ir ao vivo pula o HLS para liveSyncPosition', () => {
