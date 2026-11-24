@@ -4,6 +4,7 @@ import {
   casaHero,
   casaRails,
   createCasaShell,
+  handleCasaClick,
   handleCasaKey,
   visibleDock,
 } from '../src/casa.mjs'
@@ -74,10 +75,40 @@ function onKey(event) {
   event.preventDefault()
 }
 
+function casaClickHit(node) {
+  const tab = node.closest?.('[data-tab]')
+  if (tab?.dataset.tab) return { zone: 'tabs', tab: tab.dataset.tab }
+  const dock = node.closest?.('[data-dock]')
+  if (dock?.dataset.dock) return { zone: 'dock', dock: dock.dataset.dock }
+  const pkg = node.closest?.('[data-package]')
+  if (pkg?.dataset.package) return { zone: 'apps', package: pkg.dataset.package }
+  const card = node.closest?.('[data-rail-item]')
+  if (card) {
+    const row = card.closest('[data-rail]')
+    return {
+      zone: 'rails',
+      railIndex: Number(row?.dataset.rail ?? 0),
+      railItem: Number(card.dataset.railItem),
+    }
+  }
+  if (node.closest?.('[data-zone="hero"]')) return { zone: 'hero' }
+  return null
+}
+
+function onClick(event) {
+  const hit = casaClickHit(event.target)
+  if (!hit) return
+  const next = handleCasaClick(shell, hit, model())
+  shell = next.shell
+  draw()
+  perform(next.action)
+}
+
 async function boot() {
   await loadStores()
   draw()
   document.addEventListener('keydown', onKey)
+  root.addEventListener('click', onClick)
   globalThis.setInterval(draw, 30_000)
 }
 
