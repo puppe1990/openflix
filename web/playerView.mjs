@@ -1,11 +1,12 @@
 import { attachHlsPlayback, preferNativeHls } from '../src/hlsPlayback.mjs'
+import { armLiveStallWatch } from '../src/liveStall.mjs'
 import { attachFairPlay, pickAudioTrack } from '../src/fairPlay.mjs'
 import {
   isPlayingVideo,
   restorePlayerFromPip,
   shouldPictureInPicture,
 } from '../src/pictureInPicture.mjs'
-import { resolvePlayerSource } from '../src/playerSource.mjs'
+import { resolveLeanbackSource } from '../src/leanbackVod.mjs'
 import { watchCardFromItem } from '../src/watchCard.mjs'
 import { redactUrl } from '../src/xtreamUrls.mjs'
 import { isLeanbackApp, shouldEnterPlayerFullscreen } from '../src/tvRemote.mjs'
@@ -43,6 +44,13 @@ import { favStore, historyStore, resumeStore } from './stores.mjs'
 let hlsEngine = null
 let pipWired = false
 
+function playbackSource(url, video) {
+  return resolveLeanbackSource(url, {
+    leanback: isLeanbackApp(),
+    canPlay: (type) => video.canPlayType(type),
+  })
+}
+
 /** Injeta o engine hls.js (webview Tauri). */
 export function setHlsEngine(Hls) {
   hlsEngine = Hls
@@ -58,6 +66,8 @@ function emptyHeld() {
     catalogKind: null,
     prime: null,
     rateOpen: false,
+    liveWatch: null,
+    liveWatchUrl: '',
     ...emptyQualityState(),
   }
 }
@@ -125,10 +135,8 @@ function applyQuality(id) {
   held.session?.destroy?.()
   held.session = null
   held.url = ''
-  const source = resolvePlayerSource(picked.url, {
-    canPlay: (type) => held.video.canPlayType(type),
-  })
-  bindHlsOrProgressive(held.video, picked.url, source)
+  const source = playbackSource(picked.url, held.video)
+  bindHlsOrProgressive(held.video, source.url, source)
   held.session?.seekToLive?.()
 }
 
@@ -153,7 +161,14 @@ async function hydrateAndPaint(url) {
 }
 
 /** Solta o <video> preso entre renders. Só testes. */
+function stopLiveWatch() {
+  held.liveWatch?.stop?.()
+  held.liveWatch = null
+  held.liveWatchUrl = ''
+}
+
 export function resetPlayerMedia() {
+  stopLiveWatch()
   held.session?.destroy?.()
   held.qualityOpen = false
   held.rateOpen = false
@@ -251,14 +266,25 @@ function favButton(extraClass = '') {
   return button
 }
 
+function isHeldLive() {
+  return (
+    state.shell.catalogKind === 'live' || Boolean(held.prime?.live) || held.catalogKind === 'live'
+  )
+}
+
 function seekResume(video, item) {
-  if (state.shell.catalogKind === 'live' || held.prime?.live) return
+  if (held.prime?.live) return
+  if (isHeldLive()) {
+    held.session?.seekToLive?.()
+    return
+  }
   const saved = resumeStore.load(streamIdOf(item))
   if (saved) video.currentTime = saved.positionMs / 1000
 }
 
 function saveResume(video, item) {
   if (held.prime?.live) return
+  if (isHeldLive()) return
   if (!Number.isFinite(video.duration)) return
   resumeStore.save({
     streamId: streamIdOf(item),
@@ -377,8 +403,30 @@ function bindHlsOrProgressive(video, url, source) {
     },
   })
   startVideo(video, url)
+  startLiveWatch(video, url)
   if (shouldHydrate) void hydrateAndPaint(url)
   return source
+}
+
+function startLiveWatch(video, url) {
+  if (!isHeldLive()) {
+    stopLiveWatch()
+    return
+  }
+  const source = playUrl() || url
+  if (held.liveWatch && held.liveWatchUrl === source) return
+  stopLiveWatch()
+  held.liveWatchUrl = source
+  held.liveWatch = armLiveStallWatch(video, {
+    url: source,
+    seekToLive: () => held.session?.seekToLive?.(),
+    rebind: (nextUrl) => {
+      held.url = ''
+      held.session?.destroy?.()
+      held.session = null
+      bindHlsOrProgressive(video, nextUrl, playbackSource(nextUrl, video))
+    },
+  })
 }
 
 function playerVideo(url, item) {
@@ -398,9 +446,9 @@ function playerVideo(url, item) {
       live: Boolean(item?.prime?.live),
     })
     syncGoLiveButton(held.frame)
-    const source = resolvePlayerSource(url, { canPlay: (type) => held.video.canPlayType(type) })
+    const source = playbackSource(url, held.video)
     if (source.kind === 'hls' || source.kind === 'progressive') {
-      bindHlsOrProgressive(held.video, url, source)
+      bindHlsOrProgressive(held.video, source.url, source)
     }
     return { video: held.video, source, frame: held.frame }
   }
@@ -410,13 +458,13 @@ function playerVideo(url, item) {
   video.playsInline = true
   video.autoplay = true
   wireVideo(video)
-  const source = resolvePlayerSource(url, { canPlay: (type) => video.canPlayType(type) })
+  const source = playbackSource(url, video)
   const frame = playerFrame(video, item)
   frame.id = 'player-frame'
   held.video = video
   held.frame = frame
   if (source.kind === 'hls' || source.kind === 'progressive') {
-    bindHlsOrProgressive(video, url, source)
+    bindHlsOrProgressive(video, source.url, source)
   }
   return { video, source, frame }
 }
@@ -434,8 +482,8 @@ function goLive() {
     held.session?.destroy?.()
     held.session = null
     held.url = ''
-    const source = resolvePlayerSource(url, { canPlay: (type) => held.video.canPlayType(type) })
-    bindHlsOrProgressive(held.video, url, source)
+    const source = playbackSource(url, held.video)
+    bindHlsOrProgressive(held.video, source.url, source)
   }
   held.session?.seekToLive?.()
 }
@@ -534,6 +582,7 @@ function leavePlayerScreen() {
     root.hidden = true
     return
   }
+  stopLiveWatch()
   hidePip()
   root.hidden = true
   held.video?.pause()
