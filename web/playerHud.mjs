@@ -370,15 +370,35 @@ function paintVolume(overlay, video) {
 
 function wireHud(frame, video) {
   const overlay = frame.querySelector('[data-player-hud]')
-  overlay?.addEventListener('click', (event) => {
-    if (isHudChrome(event.target)) return
-    togglePlay(video)
-  })
+  overlay?.addEventListener(
+    'click',
+    (event) => {
+      const model = stored(frame)
+      if (model.swallowChrome) {
+        stored(frame, { swallowChrome: false })
+        event.preventDefault()
+        event.stopPropagation()
+        return
+      }
+      if (isHudChrome(event.target)) return
+      bumpHud(frame)
+    },
+    true,
+  )
   overlay?.querySelector('[data-player-rate]')?.addEventListener('click', () => {
     stored(frame).onRate?.()
   })
   if (video.dataset.hudWired === '1') return
   video.dataset.hudWired = '1'
+  video.addEventListener(
+    'click',
+    (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      bumpHud(frame)
+    },
+    true,
+  )
   const paint = () => paintPlayerHud(frame, video)
   video.addEventListener('timeupdate', paint)
   video.addEventListener('loadedmetadata', paint)
@@ -408,9 +428,15 @@ export function hidePlayerHudIfIdle(frame, video, extra = {}) {
   return hidden
 }
 
-function bumpHud(frame) {
-  const model = stored(frame, { lastActivity: Date.now() })
-  applyPlayerHudIdle(frame.querySelector('[data-player-hud]'), false)
+function bumpHud(frame, extra = {}) {
+  const overlay = frame.querySelector('[data-player-hud]')
+  const wasIdle = overlay?.hasAttribute('data-hud-idle') === true
+  const prev = hudState.get(frame) ?? {}
+  let swallowChrome = Boolean(prev.swallowChrome)
+  if (extra.swallow && wasIdle) swallowChrome = true
+  else if (extra.swallow) swallowChrome = false
+  const model = stored(frame, { lastActivity: Date.now(), swallowChrome })
+  applyPlayerHudIdle(overlay, false)
   return model
 }
 
@@ -444,7 +470,7 @@ function wireIdle(frame, video) {
   const onKey = (event) => onPlayerKey(frame, video, event)
   stored(frame, { idleWired: true, lastActivity: Date.now(), onKey })
   frame.addEventListener('mousemove', () => bumpHud(frame))
-  frame.addEventListener('pointerdown', () => bumpHud(frame))
+  frame.addEventListener('pointerdown', () => bumpHud(frame, { swallow: true }))
   frame.addEventListener('keydown', () => bumpHud(frame))
   document.addEventListener('keydown', onKey)
   video.addEventListener('pause', () => bumpHud(frame))
