@@ -8,6 +8,7 @@ import {
   casaHero,
   casaRails,
   createCasaShell,
+  handleCasaClick,
   handleCasaKey,
   shouldLeaveToCasa,
   visibleDock,
@@ -240,6 +241,87 @@ test('Down no Continuar vai para Recomendados e só depois o dock', () => {
   assert.equal(shell.railItem, 0)
   shell = handleCasaKey(shell, 'ArrowDown', { rails, dock }).shell
   assert.equal(shell.zone, 'dock')
+})
+
+test('clique no herói lança o resume', () => {
+  const last = card({ name: 'A Fazenda 18' })
+  const hero = casaHero({ history: [last], favs: [] })
+  const result = handleCasaClick(
+    createCasaShell(),
+    { zone: 'hero' },
+    {
+      hero,
+      rails: casaRails({ history: [last] }),
+      dock: visibleDock({ packages: [], hdmi: false }),
+    },
+  )
+  assert.equal(result.shell.zone, 'hero')
+  assert.equal(result.action.type, 'openflix')
+  assert.equal(result.action.play, last.streamId)
+})
+
+test('clique no cartão do trilho lança aquele título', () => {
+  const first = card({ name: 'ESPN 2 HD' })
+  const second = card({ name: 'A Fazenda 18' })
+  const rails = casaRails({ history: [first, second], favs: [] })
+  const result = handleCasaClick(
+    createCasaShell(),
+    { zone: 'rails', railIndex: 0, railItem: 1 },
+    {
+      hero: casaHero({ history: [first] }),
+      rails,
+      dock: visibleDock({ packages: [], hdmi: false }),
+    },
+  )
+  assert.equal(result.shell.zone, 'rails')
+  assert.equal(result.shell.railItem, 1)
+  assert.equal(result.action.type, 'openflix')
+  assert.equal(result.action.play, second.streamId)
+})
+
+test('clique no YouTube do dock pede o pacote da TV', () => {
+  const dock = visibleDock({
+    packages: ['com.google.android.youtube.tv'],
+    hdmi: false,
+  })
+  const result = handleCasaClick(
+    createCasaShell(),
+    { zone: 'dock', dock: 'youtube' },
+    {
+      hero: casaHero({}),
+      rails: casaRails({}),
+      dock,
+    },
+  )
+  assert.equal(result.shell.zone, 'dock')
+  assert.equal(dock[result.shell.dockIndex].id, 'youtube')
+  assert.equal(result.action.type, 'package')
+  assert.equal(result.action.package, 'com.google.android.youtube.tv')
+})
+
+test('clique na aba Ao vivo abre o OpenFlix', () => {
+  const result = handleCasaClick(
+    createCasaShell(),
+    { zone: 'tabs', tab: 'live' },
+    {
+      hero: casaHero({}),
+      rails: casaRails({}),
+      dock: visibleDock({ packages: [], hdmi: false }),
+    },
+  )
+  assert.equal(result.shell.tab, 'live')
+  assert.equal(result.action.type, 'openflix')
+})
+
+test('clique vazio não lança nada', () => {
+  const shell = createCasaShell()
+  const result = handleCasaClick(shell, null, {
+    hero: casaHero({}),
+    rails: casaRails({}),
+    dock: visibleDock({ packages: [], hdmi: false }),
+  })
+  assert.equal(result.shell, shell)
+  assert.equal(result.action, null)
 })
 
 test('Enter no Recomendados lança o cartão daquele trilho', () => {

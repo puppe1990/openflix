@@ -235,6 +235,43 @@ export function handleCasaKey(shell, key, { hero, rails, dock } = {}) {
   return { shell, action: null }
 }
 
+function focusedFromClick(shell, hit, dock) {
+  if (hit.zone === 'hero') return { ...shell, zone: 'hero' }
+  if (hit.zone === 'tabs' && hit.tab) {
+    const tabIndex = CASA_TABS.findIndex((tab) => tab.id === hit.tab)
+    if (tabIndex < 0) return null
+    return { ...shell, zone: 'tabs', tabIndex, tab: hit.tab }
+  }
+  if (hit.zone === 'dock' && hit.dock) {
+    const dockIndex = (dock ?? []).findIndex((item) => item.id === hit.dock)
+    if (dockIndex < 0) return null
+    return { ...shell, zone: 'dock', dockIndex }
+  }
+  if (hit.zone === 'rails' && hit.railIndex != null && hit.railItem != null) {
+    return {
+      ...shell,
+      zone: 'rails',
+      railIndex: Number(hit.railIndex),
+      railItem: Number(hit.railItem),
+    }
+  }
+  if (hit.zone === 'apps' && hit.package) {
+    return { ...shell, zone: 'apps' }
+  }
+  return null
+}
+
+/** Toque/clique no visor: foca o alvo e ativa como Enter. */
+export function handleCasaClick(shell, hit, { hero, rails, dock } = {}) {
+  if (!hit?.zone) return { shell, action: null }
+  if (hit.zone === 'apps' && hit.package) {
+    return { shell: { ...shell, zone: 'apps' }, action: { type: 'package', package: hit.package } }
+  }
+  const focused = focusedFromClick(shell, hit, dock)
+  if (!focused) return { shell, action: null }
+  return activate(focused, { hero, dock, rails })
+}
+
 /** Voltar no Início do OpenFlix devolve o Android à Casa. */
 export function shouldLeaveToCasa(shell, key) {
   if (key !== 'Escape' && key !== 'Backspace') return false
