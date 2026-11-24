@@ -36,6 +36,12 @@ test('Esc no player fullscreen não volta pro catálogo', () => {
   assert.equal(shouldConsumeEscape(false), false)
 })
 
+test('no projetor Voltar sai do player mesmo em tela cheia', () => {
+  assert.equal(shouldConsumeEscape(true, { leanback: true }), false)
+  assert.equal(shouldConsumeEscape(false, { leanback: true }), false)
+  assert.equal(shouldConsumeEscape(true, { leanback: false }), true)
+})
+
 test('teatro fora do @layer esconde URL/nota e enche o quadro', () => {
   const maxHeightAt = unlayered.indexOf('#player:not([hidden]) #player-frame')
   const hideAt = unlayered.indexOf('body.is-fullscreen #player > :not(#player-frame)')
@@ -46,6 +52,7 @@ test('teatro fora do @layer esconde URL/nota e enche o quadro', () => {
   assert.match(unlayered.slice(hideAt, hideAt + 160), /display:\s*none\s*!important/)
   assert.match(unlayered.slice(fillAt, fillAt + 220), /max-height:\s*none/)
 })
+
 test('teatro enche com top/right/bottom/left (Chrome 81 ignora inset)', () => {
   const playerAt = unlayered.indexOf('body.is-fullscreen #player {')
   const hudAt = unlayered.indexOf('transform: translate3d(0, 0, 0)')
@@ -65,6 +72,7 @@ test('teatro enche com top/right/bottom/left (Chrome 81 ignora inset)', () => {
   assert.match(hudBlock, /width:\s*100%/)
   assert.match(hudBlock, /height:\s*100%/)
 })
+
 test('HUD idle some o chrome mas captura o toque', () => {
   const idleAt = unlayered.indexOf('[data-player-hud][data-hud-idle] {')
   const kidsAt = unlayered.indexOf('[data-player-hud][data-hud-idle] > * {')

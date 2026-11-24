@@ -51,6 +51,27 @@ async function setShellFullscreen(on) {
   }
 }
 
+async function setHtmlFullscreen(on) {
+  const doc = document
+  if (!doc) return
+  try {
+    if (on) {
+      const el = doc.documentElement
+      const req = el.requestFullscreen || el.webkitRequestFullscreen
+      if (typeof req === 'function' && !doc.fullscreenElement && !doc.webkitFullscreenElement) {
+        await Promise.resolve(req.call(el)).catch(() => {})
+      }
+      return
+    }
+    const exit = doc.exitFullscreen || doc.webkitExitFullscreen
+    if (typeof exit === 'function' && (doc.fullscreenElement || doc.webkitFullscreenElement)) {
+      await Promise.resolve(exit.call(doc)).catch(() => {})
+    }
+  } catch {
+    /* WebView sem gesto ou API ausente: teatro CSS cobre */
+  }
+}
+
 /** Liga ou desliga teatro + janela. */
 export async function setPlayerFullscreen(on) {
   const next = on === true
@@ -62,6 +83,7 @@ export async function setPlayerFullscreen(on) {
   } catch {
     /* o CSS do teatro preenche o webview mesmo se a janela recusar */
   }
+  await setHtmlFullscreen(next)
 }
 
 /** Alterna a tela cheia do player. */

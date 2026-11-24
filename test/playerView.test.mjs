@@ -84,6 +84,19 @@ function openFla(url = liveUrl()) {
   return url
 }
 
+test('no projetor o play já abre em tela cheia', () => {
+  globalThis.OpenFlixHouse = { leave() {} }
+  openFla()
+  renderPlayer()
+  assert.equal(document.body.classList.contains('is-fullscreen'), true)
+})
+
+test('no desktop o play fica com o header', () => {
+  openFla()
+  renderPlayer()
+  assert.equal(document.body.classList.contains('is-fullscreen'), false)
+})
+
 test('player esconde os controles nativos e pinta o HUD cinema', () => {
   openFla()
   renderPlayer()
