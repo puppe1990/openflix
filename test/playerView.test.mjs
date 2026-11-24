@@ -39,7 +39,7 @@ stubVideo()
 
 const { state } = await import('../web/state.mjs')
 const { renderPlayer, resetPlayerMedia, setHlsEngine } = await import('../web/playerView.mjs')
-const { togglePlayerFullscreen } = await import('../web/fullscreen.mjs')
+const { resetPlayerFullscreen, togglePlayerFullscreen } = await import('../web/fullscreen.mjs')
 const { applyPlayerHudIdle, hidePlayerHudIfIdle } = await import('../web/playerHud.mjs')
 const { favStore, historyStore } = await import('../web/stores.mjs')
 const originalFetch = globalThis.fetch
@@ -57,6 +57,8 @@ beforeEach(() => {
   resetPlayerMedia()
   setHlsEngine(null)
   delete globalThis.__TAURI__
+  delete globalThis.OpenFlixHouse
+  resetPlayerFullscreen()
   historyStore.clear()
   favStore.clear()
   globalThis.fetch = async () => ({ ok: false, status: 599, text: async () => '' })
@@ -298,6 +300,32 @@ test('espaço no HUD pausa o vídeo que está tocando', () => {
   const video = document.querySelector('#player video')
   document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: ' ', bubbles: true }))
   assert.equal(video.paused, true)
+})
+
+test('no projetor OK do controle pausa o vídeo', () => {
+  globalThis.OpenFlixHouse = { leave() {} }
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  assert.equal(video.paused, true)
+})
+
+test('no projetor ao vivo as setas do controle não pulam', () => {
+  globalThis.OpenFlixHouse = { leave() {} }
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  Object.defineProperty(video, 'duration', { configurable: true, get: () => 90 })
+  video.currentTime = 40
+  document.dispatchEvent(
+    new dom.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }),
+  )
+  document.dispatchEvent(
+    new dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+  )
+  assert.equal(video.currentTime, 40)
+  assert.equal(video.paused, false)
 })
 
 test('player HLS liga autoplay e dispara play', () => {
