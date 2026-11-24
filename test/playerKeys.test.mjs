@@ -26,6 +26,24 @@ test('outra tecla não mexe no player', () => {
   assert.equal(playerMediaAction(faker.string.alpha({ length: 2 })), null)
 })
 
+test('no projetor OK pausa e as setas pulam 10s', () => {
+  const remote = { leanback: true }
+  assert.equal(playerMediaAction('Enter', remote), 'toggle-play')
+  assert.equal(playerMediaAction('ArrowLeft', remote), 'seek-back')
+  assert.equal(playerMediaAction('ArrowRight', remote), 'seek-forward')
+  assert.equal(playerMediaAction('Enter'), null)
+  assert.equal(playerMediaAction('ArrowLeft'), null)
+})
+
+test('no projetor ao vivo as setas não pulam', () => {
+  const remote = { leanback: true, live: true }
+  assert.equal(playerMediaAction('Enter', remote), 'toggle-play')
+  assert.equal(playerMediaAction('ArrowLeft', remote), null)
+  assert.equal(playerMediaAction('ArrowRight', remote), null)
+  assert.equal(playerMediaAction('MediaRewind', remote), null)
+  assert.equal(playerMediaAction('MediaFastForward', remote), null)
+})
+
 test('applyPlayerMediaAction pausa o vídeo que está tocando', () => {
   const video = {
     paused: false,
@@ -52,6 +70,14 @@ test('applyPlayerMediaAction silencia e volta o volume', () => {
 test('applyPlayerMediaAction recusa ação desconhecida', () => {
   assert.throws(
     () => applyPlayerMediaAction({ paused: true }, 'stop'),
-    /ação recusada: recebido "stop", esperado toggle-play ou mute/,
+    /ação recusada: recebido "stop", esperado toggle-play, mute, seek-back ou seek-forward/,
   )
+})
+
+test('applyPlayerMediaAction no projetor recua e avança 10s', () => {
+  const video = { paused: false, currentTime: 40, duration: 90 }
+  applyPlayerMediaAction(video, 'seek-back')
+  assert.equal(video.currentTime, 30)
+  applyPlayerMediaAction(video, 'seek-forward')
+  assert.equal(video.currentTime, 40)
 })

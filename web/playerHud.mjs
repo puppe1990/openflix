@@ -1,5 +1,6 @@
 import { fullscreenButtonLabel } from '../src/fullscreen.mjs'
 import { applyPlayerMediaAction, playerMediaAction } from '../src/playerKeys.mjs'
+import { isLeanbackApp } from '../src/tvRemote.mjs'
 import {
   cinemaBrandLabel,
   playbackRateLabel,
@@ -457,7 +458,8 @@ export function resetPlayerHudIdle(frame) {
 
 function onPlayerKey(frame, video, event) {
   if (event.target.matches?.('input, textarea, select')) return
-  const action = playerMediaAction(event.key)
+  const live = chromeOf(frame, video).isLive
+  const action = playerMediaAction(event.key, { leanback: isLeanbackApp(), live })
   if (!action) return
   event.preventDefault()
   applyPlayerMediaAction(video, action)

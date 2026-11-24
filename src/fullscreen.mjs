@@ -6,7 +6,8 @@ export function fullscreenButtonLabel(active) {
   return active ? 'Sair da tela cheia' : 'Tela cheia'
 }
 
-/** Esc sai da tela cheia em vez de voltar o shell. */
-export function shouldConsumeEscape(active) {
+/** Esc sai da tela cheia em vez de voltar o shell. No projetor Voltar já sai do player. */
+export function shouldConsumeEscape(active, { leanback } = {}) {
+  if (leanback === true) return false
   return active === true
 }

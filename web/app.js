@@ -1,5 +1,6 @@
 import { callHouse, shouldLeaveToCasa } from '../src/casa.mjs'
 import { shouldConsumeEscape } from '../src/fullscreen.mjs'
+import { isLeanbackApp } from '../src/tvRemote.mjs'
 import { DEFAULT_SETTINGS_TAB, selectSettingsTab } from '../src/settingsTabs.mjs'
 import { focusHome, goBack, handleKey, openHomeTile } from '../src/tvShell.mjs'
 import { BRAND } from './config.mjs'
@@ -87,7 +88,10 @@ async function onKey(event) {
     event.preventDefault()
     return
   }
-  if (event.key === 'Escape' && shouldConsumeEscape(isPlayerFullscreen())) {
+  if (
+    event.key === 'Escape' &&
+    shouldConsumeEscape(isPlayerFullscreen(), { leanback: isLeanbackApp() })
+  ) {
     event.preventDefault()
     await exitPlayerFullscreen()
     return

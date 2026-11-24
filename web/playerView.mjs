@@ -8,6 +8,7 @@ import {
 import { resolvePlayerSource } from '../src/playerSource.mjs'
 import { watchCardFromItem } from '../src/watchCard.mjs'
 import { redactUrl } from '../src/xtreamUrls.mjs'
+import { isLeanbackApp, shouldEnterPlayerFullscreen } from '../src/tvRemote.mjs'
 import { goBack } from '../src/tvShell.mjs'
 import { actionClass, ghostClass, playerNoteClass, playerUrlClass } from '../src/tvSkin.mjs'
 import { tauriInvoke, webFetch } from './bridge.mjs'
@@ -15,6 +16,7 @@ import { byId, el } from './dom.mjs'
 import {
   exitPlayerFullscreen,
   resetPlayerFullscreen,
+  setPlayerFullscreen,
   togglePlayerFullscreen,
 } from './fullscreen.mjs'
 import { ICON_HEART, iconSvg } from './icons.mjs'
@@ -547,6 +549,9 @@ export function renderPlayer() {
   }
   hidePip()
   root.hidden = false
+  if (shouldEnterPlayerFullscreen({ leanback: isLeanbackApp(), screen: 'player' })) {
+    void setPlayerFullscreen(true)
+  }
   const item = state.shell.selectedItem
   const url = playUrl()
   const note = el('p', playerNoteClass())
