@@ -40,7 +40,7 @@ stubVideo()
 const { state } = await import('../web/state.mjs')
 const { renderPlayer, resetPlayerMedia, setHlsEngine } = await import('../web/playerView.mjs')
 const { togglePlayerFullscreen } = await import('../web/fullscreen.mjs')
-const { hidePlayerHudIfIdle } = await import('../web/playerHud.mjs')
+const { applyPlayerHudIdle, hidePlayerHudIfIdle } = await import('../web/playerHud.mjs')
 const { favStore, historyStore } = await import('../web/stores.mjs')
 const originalFetch = globalThis.fetch
 
@@ -196,13 +196,55 @@ test('pause do HUD pausa o vídeo', () => {
   assert.equal(video.paused, true)
 })
 
-test('clique no palco do HUD pausa uma vez', () => {
+test('clique no palco do HUD abre o chrome e não pausa o ao vivo', () => {
   openFla()
   renderPlayer()
   const video = document.querySelector('#player video')
   const overlay = document.querySelector('[data-player-hud]')
+  applyPlayerHudIdle(overlay, true)
+  assert.equal(overlay.hasAttribute('data-hud-idle'), true)
   overlay.click()
+  assert.equal(video.paused, false)
+  assert.equal(overlay.hasAttribute('data-hud-idle'), false)
+})
+
+test('toque no centro com HUD idle abre o cinema e não pausa', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const overlay = document.querySelector('[data-player-hud]')
+  const pause = document.querySelector('[data-player-pause]')
+  applyPlayerHudIdle(overlay, true)
+  overlay.dispatchEvent(new dom.window.Event('pointerdown', { bubbles: true }))
+  pause.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }))
+  assert.equal(video.paused, false)
+  assert.equal(overlay.hasAttribute('data-hud-idle'), false)
+})
+
+test('segundo toque no pause pausa depois do HUD aberto', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const overlay = document.querySelector('[data-player-hud]')
+  const pause = document.querySelector('[data-player-pause]')
+  applyPlayerHudIdle(overlay, true)
+  overlay.dispatchEvent(new dom.window.Event('pointerdown', { bubbles: true }))
+  pause.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }))
+  assert.equal(video.paused, false)
+  overlay.dispatchEvent(new dom.window.Event('pointerdown', { bubbles: true }))
+  pause.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }))
   assert.equal(video.paused, true)
+})
+
+test('clique no vídeo em idle abre o HUD fullscreen e não pausa', () => {
+  openFla()
+  renderPlayer()
+  const video = document.querySelector('#player video')
+  const overlay = document.querySelector('[data-player-hud]')
+  applyPlayerHudIdle(overlay, true)
+  video.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }))
+  assert.equal(video.paused, false)
+  assert.equal(overlay.hasAttribute('data-hud-idle'), false)
 })
 
 test('slider de volume altera o vídeo e não some no flex', () => {

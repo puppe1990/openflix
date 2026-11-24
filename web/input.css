@@ -128,10 +128,18 @@ html[data-theme='light'] {
 #player-video {
   position: relative;
   z-index: 0;
+  pointer-events: none;
 }
 
 [data-player-hud] {
   transform: translate3d(0, 0, 0);
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* teatro: fora do @layer pra ganhar do `block` da URL e da max-height do quadro */
@@ -149,7 +157,10 @@ body.is-fullscreen main {
 
 body.is-fullscreen #player {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 100;
   padding: 0;
   overflow: hidden;
@@ -165,7 +176,7 @@ body.is-fullscreen #player-frame {
   width: 100%;
   max-width: 100%;
   max-height: none;
-  height: 100vh;
+  height: 100%;
   min-width: 0;
   flex-direction: column;
   aspect-ratio: auto;
@@ -186,6 +197,10 @@ body.is-fullscreen #player-frame:has([data-hud-idle]) {
 
 [data-player-hud][data-hud-idle] {
   opacity: 0 !important;
+  pointer-events: auto !important;
+}
+
+[data-player-hud][data-hud-idle] > * {
   pointer-events: none !important;
 }
 
